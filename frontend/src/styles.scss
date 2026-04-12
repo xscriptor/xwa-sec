@@ -1,0 +1,119 @@
+/*====================================
+ * NOTHING DESIGN SYSTEM - TOKENS
+ *====================================*/
+
+ :root {
+  /* Fonts */
+  --font-display: 'Doto', 'Space Mono', monospace;
+  --font-body: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  --font-data: 'Space Mono', 'JetBrains Mono', monospace;
+
+  /* Type Scale */
+  --display-xl: 72px;
+  --display-lg: 48px;
+  --display-md: 36px;
+  --heading: 24px;
+  --subheading: 18px;
+  --body: 16px;
+  --body-sm: 14px;
+  --caption: 12px;
+  --label: 11px;
+
+  /* Spacing Scale (8px base) */
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
+
+  /* Default Theme: Dark Mode (Instrument Panel) */
+  --black: #000000;
+  --surface: #111111;
+  --surface-raised: #1A1A1A;
+  --border: #222222;
+  --border-visible: #333333;
+  --text-disabled: #666666;
+  --text-secondary: #999999;
+  --text-primary: #E8E8E8;
+  --text-display: #FFFFFF;
+  --interactive: #5B9BF6;
+
+  /* Status and Accents */
+  --accent: #D71921; /* Signal light, destructive, urgent */
+  --accent-subtle: rgba(215, 25, 33, 0.15);
+  --success: #4A9E5C;
+  --warning: #D4A843;
+  --error: #D71921;
+}
+
+/* Light Theme overrides (Printed Technical Manual) */
+.theme-light {
+  --black: #F5F5F5;
+  --surface: #FFFFFF;
+  --surface-raised: #F0F0F0;
+  --border: #E8E8E8;
+  --border-visible: #CCCCCC;
+  --text-disabled: #999999;
+  --text-secondary: #666666;
+  --text-primary: #1A1A1A;
+  --text-display: #000000;
+  --interactive: #007AFF;
+}
+
+/*====================================
+ * CSS RESET & BASE STYLES
+ *====================================*/
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--black);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Classes */
+.t-display-xl { font-family: var(--font-display); font-size: var(--display-xl); line-height: 1.0; letter-spacing: -0.03em; color: var(--text-display); }
+.t-display-lg { font-family: var(--font-display); font-size: var(--display-lg); line-height: 1.05; letter-spacing: -0.02em; color: var(--text-display); }
+.t-display-md { font-family: var(--font-display); font-size: var(--display-md); line-height: 1.1; letter-spacing: -0.02em; color: var(--text-display); }
+.t-heading { font-family: var(--font-body); font-size: var(--heading); line-height: 1.2; letter-spacing: -0.01em; color: var(--text-display); }
+.t-label { font-family: var(--font-data); font-size: var(--label); line-height: 1.2; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.t-data { font-family: var(--font-data); }
+
+/* Utility Classes */
+.bg-surface { background-color: var(--surface); }
+.border-divider { border: 1px solid var(--border); }
+.border-visible { border: 1px solid var(--border-visible); }
+.text-accent { color: var(--accent); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+
+/* Dot-Matrix Motif */
+.dot-grid {
+  background-image: radial-gradient(circle, var(--border-visible) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.dot-grid-subtle {
+  background-image: radial-gradient(circle, var(--border) 0.5px, transparent 0.5px);
+  background-size: 12px 12px;
+}
+
+/* Basic Layout & Interactions */
+a, button {
+  transition: opacity 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+a:hover, button:hover {
+  opacity: 0.8;
+}
