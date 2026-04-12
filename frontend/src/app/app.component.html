@@ -1,47 +1,36 @@
-<main class="container dot-grid-subtle">
-  <header>
-    <div>
-      <h1 class="t-heading">XWA_SEC // ENGINE</h1>
-      <span class="t-label">CYBERSECURITY DEEP ANALYSIS</span>
+<div class="app-layout">
+  <!-- SIDEBAR NAVIGATION -->
+  <nav class="sidebar">
+    <div class="brand">
+      <h1 class="t-heading">XWA_SEC</h1>
+      <span class="t-label">CYBER PLATFORM</span>
     </div>
-    
-    <div class="system-status">
-      <div class="status-dot" [style.background-color]="isScanning ? 'var(--warning)' : 'var(--success)'"></div>
-      <span class="t-label">{{ isScanning ? 'SCANNING...' : 'SYSTEM ONLINE' }}</span>
+
+    <ul class="nav-links">
+      <li>
+        <a routerLink="/scanner" routerLinkActive="active" class="t-label">01 // SCANNER</a>
+      </li>
+      <li>
+        <a routerLink="/recon" routerLinkActive="active" class="t-label">02 // WEB RECON</a>
+      </li>
+      <li>
+        <a routerLink="/vulnerabilities" routerLinkActive="active" class="t-label">03 // VULNERABILITIES</a>
+      </li>
+      <li>
+        <a routerLink="/history" routerLinkActive="active" class="t-label">04 // HISTORY & ARCHIVE</a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <span class="t-label">v. 2.5.0</span>
+      <span class="t-label"><a href="https://github.com/xscriptor/">GitHub</a></span>
+      <span class="t-label"><a href="https://dev.xscriptor.com">XWeb</a></span>
+      <div class="dot-grid-subtle branding-grid"></div>
     </div>
-  </header>
+  </nav>
 
-  <div class="dashboard-grid">
-    <!-- Target Config Panel -->
-    <section class="panel">
-      <h2 class="t-heading">TARGET_CONFIG</h2>
-      
-      <div class="input-group">
-        <label class="t-label">DOMAIN / IP</label>
-        <input type="text" [(ngModel)]="targetDomain" [disabled]="isScanning">
-      </div>
-      
-      <button class="btn-primary destructive" (click)="initiateScan()" [disabled]="isScanning">
-        {{ isScanning ? 'SCAN IN PROGRESS' : 'INITIATE SCAN' }}
-      </button>
-    </section>
-
-    <!-- Hero Metric Panel -->
-    <section class="panel">
-      <div class="hero-metric">
-        <span class="t-label">PORTS_FOUND</span>
-        <span class="t-display-xl">{{ vulnerabilitiesFound }}</span>
-      </div>
-    </section>
-
-    <!-- LIVE TERMINAL PANEL -->
-    <section class="panel terminal-panel" style="grid-column: 1 / -1;">
-        <h2 class="t-label terminal-head">LIVE_TERMINAL_OUTPUT</h2>
-        
-        <div class="nothing-term">
-            <pre *ngFor="let line of terminalLogs">{{ line }}</pre>
-            <div class="cursor" *ngIf="isScanning"></div>
-        </div>
-    </section>
-  </div>
-</main>
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content dot-grid-subtle">
+    <router-outlet></router-outlet>
+  </main>
+</div>

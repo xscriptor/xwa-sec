@@ -1,0 +1,73 @@
+<div class="route-container">
+  <header class="section-header">
+    <div>
+      <h2 class="t-heading">ARCHIVE_HISTORY</h2>
+      <span class="t-label">PERSISTENT SCAN DATABASE</span>
+    </div>
+  </header>
+
+  <div class="dashboard-grid archive-grid">
+    
+    <!-- LEFT: Listado de Scans -->
+    <section class="panel list-panel">
+        <h2 class="t-heading">SAVED_SCANS_LIST</h2>
+        <div *ngIf="isLoading" class="t-label">Loading database...</div>
+
+        <div class="scan-card" *ngFor="let s of scans" (click)="viewDetails(s.id)" [class.active]="selectedScan?.id === s.id">
+            <div class="scan-header">
+                <span class="t-label text-interactive">ID_#{{s.id}}</span>
+                <button class="btn-sm destructive" (click)="deleteScan(s.id, $event)">DELETE</button>
+            </div>
+            <div class="scan-body">
+                <span class="t-heading">{{s.domain_target}}</span>
+                <span class="t-label badge" [ngClass]="s.status === 'COMPLETED' ? 'text-success' : 'text-warning'">[{{s.status}}]</span>
+                <span class="t-label text-secondary">TYPE: {{s.scan_type | uppercase}}</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- RIGHT: Detalle de ese Scan -->
+    <section class="panel detail-panel">
+        <h2 class="t-heading">SCAN_REPORTS</h2>
+        
+        <div *ngIf="!selectedScan" class="empty-state t-label">
+            [ SELECT A SCAN TO VIEW REPORTS ]
+        </div>
+
+        <div *ngIf="selectedScan" class="detail-view">
+            <h3 class="t-display-md" style="margin-bottom: 0;">{{selectedScan.domain_target}}</h3>
+            <span class="t-label text-secondary" style="margin-bottom: 1rem; display: block;">DATE: {{selectedScan.created_at}}</span>
+
+            <!-- Findings Directos (Nmap ports) -->
+            <div *ngIf="selectedScan.findings?.length" class="report-section">
+                <h4 class="t-label">SURFACE METRICS (PORTS/GENERAL)</h4>
+                <div class="finding-row" *ngFor="let f of selectedScan.findings">
+                   <div class="severity-dot" [ngClass]="f.severity"></div>
+                   <span>{{f.finding_type}}</span>
+                   <pre class="desc-box">{{f.description}}</pre>
+                </div>
+            </div>
+
+            <!-- Discovered Links (Crawler) -->
+            <div *ngIf="selectedScan.discovered_links?.length" class="report-section">
+                <h4 class="t-label">DISCOVERED TOPOLOGY (CRAWLER)</h4>
+                
+                <details class="nothing-accordion" *ngFor="let link of selectedScan.discovered_links">
+                    <summary>
+                        <span class="t-label">{{link.status_code}} HTTP</span>
+                        <span class="t-body">{{link.url}}</span>
+                        <span class="badge warning" *ngIf="link.findings?.length">! {{link.findings.length}} Issues</span>
+                    </summary>
+                    <div class="accordion-content">
+                        <span class="t-label text-secondary">Content-Type: {{link.content_type}}</span>
+                        <div class="finding-row" *ngFor="let vf of link.findings">
+                           <div class="severity-dot" [ngClass]="vf.severity"></div>
+                           <span>[{{vf.finding_type}}] {{vf.description}}</span>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </section>
+  </div>
+</div>
