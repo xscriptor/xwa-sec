@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -17,6 +17,8 @@ export class ScannerComponent implements OnDestroy {
 
   vulnerabilitiesFound = 0;
 
+  constructor(private cdr: ChangeDetectorRef) {}
+
   initiateScan() {
     if (this.isScanning) return;
     if (!this.targetDomain) return;
@@ -24,26 +26,32 @@ export class ScannerComponent implements OnDestroy {
     this.isScanning = true;
     this.terminalLogs = [`[+] CONNECTING TO ENGINE FOR SCANNING: ${this.targetDomain}...`];
     this.vulnerabilitiesFound = 0;
+    this.cdr.detectChanges();
 
-    const wsUrl = `ws://127.0.0.1:8000/api/scan/live?target=${encodeURIComponent(this.targetDomain)}`;
+    const wsUrl = `ws://${window.location.hostname}:8000/api/scan/live?target=${encodeURIComponent(this.targetDomain)}`;
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onmessage = (event) => {
+      console.log("WS SCAN MESSAGE:", event.data);
       this.terminalLogs.push(event.data);
       if (event.data.includes('open')) {
         this.vulnerabilitiesFound++;
       }
+      this.cdr.detectChanges();
     };
 
     this.socket.onclose = () => {
+      console.log("WS SCAN CLOSED");
       this.terminalLogs.push('[!] CONNECTION CLOSED. Scan finished.');
       this.isScanning = false;
+      this.cdr.detectChanges();
     };
 
     this.socket.onerror = (err) => {
+      console.log("WS SCAN ERROR:", err);
       this.terminalLogs.push('[!] WEBSOCKET CONNECTION ERROR.');
-      console.error('WS Error:', err);
       this.isScanning = false;
+      this.cdr.detectChanges();
     };
   }
 

@@ -1,8 +1,8 @@
 <div class="route-container">
     <header class="section-header">
       <div>
-        <h2 class="t-heading">VULNERABILITY_CRAWLER</h2>
-        <span class="t-label">ASYNC SPIDER & FINDINGS ENGINE</span>
+        <h2 class="t-heading">DAST_SCANNER</h2>
+        <span class="t-label">DYNAMIC APPLICATION SECURITY TESTING</span>
       </div>
       
       <div class="system-status">
@@ -22,16 +22,16 @@
         </div>
         
         <button class="btn-primary destructive" (click)="initiateCrawl()" [disabled]="isScanning">
-          {{ isScanning ? 'CRAWLING IN PROGRESS' : 'INITIATE CRAWL' }}
+          {{ isScanning ? 'DAST SCAN IN PROGRESS' : 'INITIATE DAST SCAN' }}
         </button>
       </section>
   
       <!-- Terminal Live del Crawler -->
       <section class="panel terminal-panel">
-          <h2 class="t-label terminal-head">LIVE_CRAWLER_STDOUT</h2>
-          <div class="nothing-term">
+          <h2 class="t-label terminal-head">DAST_ENGINE_STDOUT</h2>
+          <div class="nothing-term" #scrollMe [scrollTop]="scrollMe.scrollHeight">
               <pre *ngFor="let line of terminalLogs">{{ line }}</pre>
-              <div class="cursor" *ngIf="isScanning"></div>
+              <div class="cursor" *ngIf="isScanning" style="display:inline-block; vertical-align: bottom;"></div>
           </div>
       </section>
 
@@ -58,11 +58,17 @@
                 <span class="t-label text-secondary">Content-Type: {{link.content_type}}</span>
                 <div *ngIf="!link.findings?.length" class="t-body" style="opacity: 0.7;">No vulnerabilities detected on this specific node.</div>
                 
-                <div class="finding-row" *ngFor="let vf of link.findings">
+                <div class="finding-row" *ngFor="let vf of link.findings" style="flex-wrap: wrap;">
                    <div class="severity-dot" [ngClass]="vf.severity"></div>
-                   <div class="finding-texts">
+                   <div class="finding-texts" style="width: 100%">
                       <span class="t-label">[{{vf.finding_type}}]</span>
-                      <span class="t-body">{{vf.description}}</span>
+                      <span class="badge" *ngIf="vf.cvss_score" style="margin-left: 0.5rem;">CVSS: {{vf.cvss_score}}</span>
+                      <span class="t-body" style="display: block; margin-top: 0.25rem;">{{vf.description}}</span>
+                      
+                      <div class="poc-block" *ngIf="vf.poc_payload" style="margin-top: 0.5rem;">
+                        <span class="t-label text-secondary">PROOF OF CONCEPT:</span>
+                        <pre style="background: rgba(255,255,255,0.05); padding: 0.5rem; font-family: monospace; white-space: pre-wrap; font-size: 0.8em; margin-top: 0.25rem;">{{vf.poc_payload}}</pre>
+                      </div>
                    </div>
                 </div>
             </div>

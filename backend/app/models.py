@@ -32,9 +32,11 @@ class Finding(Base):
     scan_id = Column(Integer, ForeignKey("scans.id", ondelete="CASCADE"))
     link_id = Column(Integer, ForeignKey("discovered_links.id", ondelete="CASCADE"), nullable=True)
     
-    severity = Column(String) # low, medium, high, info
+    severity = Column(String) # low, medium, high, info, critical
     finding_type = Column(String)
     description = Column(String)
-
+    poc_payload = Column(String, nullable=True)
+    cvss_score = Column(String, nullable=True)
+    
     scan = relationship("Scan", back_populates="findings")
     link = relationship("DiscoveredLink", back_populates="findings")

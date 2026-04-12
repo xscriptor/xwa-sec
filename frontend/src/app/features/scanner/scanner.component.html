@@ -35,9 +35,9 @@
     <section class="panel terminal-panel" style="grid-column: 1 / -1;">
         <h2 class="t-label terminal-head">LIVE_TERMINAL_OUTPUT</h2>
         
-        <div class="nothing-term">
+        <div class="nothing-term" #scrollMe [scrollTop]="scrollMe.scrollHeight">
             <pre *ngFor="let line of terminalLogs">{{ line }}</pre>
-            <div class="cursor" *ngIf="isScanning"></div>
+            <div class="cursor" *ngIf="isScanning" style="display:inline-block; vertical-align: bottom;"></div>
         </div>
     </section>
   </div>

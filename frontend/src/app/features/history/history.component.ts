@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 
@@ -24,7 +24,7 @@ export class HistoryComponent implements OnInit {
   selectedScan: ScanItem | null = null;
   isLoading = true;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.fetchHistory();
@@ -32,14 +32,16 @@ export class HistoryComponent implements OnInit {
 
   fetchHistory() {
     this.isLoading = true;
-    this.http.get<ScanItem[]>('http://127.0.0.1:8000/api/scans').subscribe({
+    this.http.get<ScanItem[]>(`http://${window.location.hostname}:8000/api/scans`).subscribe({
       next: (data) => {
         this.scans = data;
         this.isLoading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error fetching history:', err);
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -48,21 +50,25 @@ export class HistoryComponent implements OnInit {
     event.stopPropagation();
     if (!confirm('Are you sure you want to delete this scan and all its findings?')) return;
     
-    this.http.delete(`http://127.0.0.1:8000/api/scans/${id}`).subscribe({
+    this.http.delete(`http://${window.location.hostname}:8000/api/scans/${id}`).subscribe({
       next: () => {
         // Optimistic UI update
         this.scans = this.scans.filter(s => s.id !== id);
         if (this.selectedScan && this.selectedScan.id === id) {
              this.selectedScan = null;
         }
+        this.cdr.detectChanges();
       },
       error: (err) => console.error('Delete error', err)
     });
   }
 
   viewDetails(id: number) {
-    this.http.get<ScanItem>(`http://127.0.0.1:8000/api/scans/${id}`).subscribe({
-      next: (data) => this.selectedScan = data,
+    this.http.get<ScanItem>(`http://${window.location.hostname}:8000/api/scans/${id}`).subscribe({
+      next: (data) => {
+        this.selectedScan = data;
+        this.cdr.detectChanges();
+      },
       error: (err) => console.error('Detail error', err)
     });
   }

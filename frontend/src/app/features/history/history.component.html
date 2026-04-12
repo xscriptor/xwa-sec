@@ -41,10 +41,17 @@
             <!-- Findings Directos (Nmap ports) -->
             <div *ngIf="selectedScan.findings?.length" class="report-section">
                 <h4 class="t-label">SURFACE METRICS (PORTS/GENERAL)</h4>
-                <div class="finding-row" *ngFor="let f of selectedScan.findings">
+                <div class="finding-row" *ngFor="let f of selectedScan.findings" style="flex-wrap: wrap;">
                    <div class="severity-dot" [ngClass]="f.severity"></div>
-                   <span>{{f.finding_type}}</span>
-                   <pre class="desc-box">{{f.description}}</pre>
+                   <div style="width: 100%">
+                       <span>[{{f.finding_type}}]</span>
+                       <span *ngIf="f.cvss_score" class="badge" style="margin-left: 0.5rem;">CVSS: {{f.cvss_score}}</span>
+                       <pre class="desc-box">{{f.description}}</pre>
+                       <div *ngIf="f.poc_payload" style="margin-top: 0.5rem;">
+                            <span class="t-label text-secondary">PROOF OF CONCEPT:</span>
+                            <pre class="desc-box" style="white-space: pre-wrap;">{{f.poc_payload}}</pre>
+                       </div>
+                   </div>
                 </div>
             </div>
 
@@ -60,9 +67,16 @@
                     </summary>
                     <div class="accordion-content">
                         <span class="t-label text-secondary">Content-Type: {{link.content_type}}</span>
-                        <div class="finding-row" *ngFor="let vf of link.findings">
+                        <div class="finding-row" *ngFor="let vf of link.findings" style="flex-wrap: wrap;">
                            <div class="severity-dot" [ngClass]="vf.severity"></div>
-                           <span>[{{vf.finding_type}}] {{vf.description}}</span>
+                           <div style="width: 100%">
+                               <span>[{{vf.finding_type}}] {{vf.description}}</span>
+                               <span *ngIf="vf.cvss_score" class="badge" style="margin-left: 0.5rem;">CVSS: {{vf.cvss_score}}</span>
+                               <div *ngIf="vf.poc_payload" style="margin-top: 0.5rem;">
+                                    <span class="t-label text-secondary">PROOF OF CONCEPT:</span>
+                                    <pre class="desc-box" style="white-space: pre-wrap;">{{vf.poc_payload}}</pre>
+                               </div>
+                           </div>
                         </div>
                     </div>
                 </details>

@@ -33,10 +33,10 @@ async def websocket_scan(websocket: WebSocket, target: str, db: Session = Depend
         await websocket.close()
 
 @app.websocket("/api/vuln/live")
-async def websocket_vuln_crawler(websocket: WebSocket, target: str, db: Session = Depends(database.get_db)):
+async def websocket_vuln_crawler(websocket: WebSocket, target: str, modules: str = "all", db: Session = Depends(database.get_db)):
     await websocket.accept()
     try:
-        await crawler.perform_crawl(target, websocket, db)
+        await crawler.perform_crawl(target, modules, websocket, db)
     except WebSocketDisconnect:
         pass
     except Exception as e:
