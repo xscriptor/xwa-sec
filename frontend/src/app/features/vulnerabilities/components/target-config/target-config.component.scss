@@ -47,6 +47,26 @@
   gap: var(--space-xs);
 }
 
+.module-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-secondary {
+  border: 1px solid var(--border-visible);
+  background-color: transparent;
+  color: var(--text-secondary);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-data);
+  font-size: var(--label);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 .module-chip {
   border: 1px solid var(--border-visible);
   background-color: var(--black);
@@ -102,5 +122,13 @@
 
   .module-grid {
     grid-template-columns: 1fr;
+  }
+
+  .module-actions {
+    justify-content: stretch;
+
+    .btn-secondary {
+      width: 100%;
+    }
   }
 }

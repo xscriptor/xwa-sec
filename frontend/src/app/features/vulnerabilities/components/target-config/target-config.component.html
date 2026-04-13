@@ -26,6 +26,17 @@
         <span class="chip-help">{{ module.description }}</span>
       </button>
     </div>
+
+    <div class="module-actions">
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="activateAllModules.emit()"
+        [disabled]="isScanning || allModulesActive"
+      >
+        ACTIVATE ALL MODULES
+      </button>
+    </div>
   </div>
 
   <button class="btn-primary destructive" (click)="initiate.emit()" [disabled]="isScanning">

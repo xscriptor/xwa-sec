@@ -16,9 +16,11 @@
       [isScanning]="isScanning"
       [targetUrl]="targetUrl"
       [activeModules]="activeModules"
+      [allModulesActive]="allModulesActive"
       [moduleOptions]="moduleOptions"
       (targetUrlChange)="targetUrl = $event"
       (moduleToggle)="toggleModule($event)"
+      (activateAllModules)="activateAllModules()"
       (initiate)="initiateCrawl()"
     ></app-vuln-target-config>
 

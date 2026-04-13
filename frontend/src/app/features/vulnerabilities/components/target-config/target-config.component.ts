@@ -13,9 +13,11 @@ export class VulnerabilitiesTargetConfigComponent {
   @Input() isScanning = false;
   @Input() targetUrl = '';
   @Input() activeModules: Record<string, boolean> = {};
+  @Input() allModulesActive = false;
   @Input() moduleOptions: Array<{ key: string; label: string; description: string }> = [];
 
   @Output() targetUrlChange = new EventEmitter<string>();
   @Output() initiate = new EventEmitter<void>();
   @Output() moduleToggle = new EventEmitter<string>();
+  @Output() activateAllModules = new EventEmitter<void>();
 }

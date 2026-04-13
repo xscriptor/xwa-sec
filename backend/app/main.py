@@ -2,12 +2,13 @@ from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, HTTPExcept
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from . import models, database, scanner, crawler
-import os
 
 app = FastAPI(title="XWA Sec API", description="Deep Cybersecurity Analysis API", version="2.5.0")
 
-# Auto-crear base de datos
-models.Base.metadata.create_all(bind=database.engine)
+@app.on_event("startup")
+def init_database():
+    database.wait_for_db()
+    models.Base.metadata.create_all(bind=database.engine)
 
 app.add_middleware(
     CORSMiddleware,

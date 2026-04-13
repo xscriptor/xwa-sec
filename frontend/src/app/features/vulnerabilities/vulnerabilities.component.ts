@@ -41,8 +41,11 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
     cors: true,
     brute: true,
     sqli: true,
+    sqlmap: true,
     xss: true,
-    lfi: true
+    lfi: true,
+    nuclei: true,
+    playwright: true
   };
 
   moduleOptions = [
@@ -51,8 +54,11 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
     { key: 'cors', label: 'CORS', description: 'Cross-origin policy validation' },
     { key: 'brute', label: 'PATH BRUTE', description: 'Sensitive path exposure checks' },
     { key: 'sqli', label: 'SQLI', description: 'Injection payloads against forms' },
+    { key: 'sqlmap', label: 'SQLMAP', description: 'Automated SQLi verification via SQLMap' },
     { key: 'xss', label: 'XSS', description: 'Reflected script execution checks' },
-    { key: 'lfi', label: 'LFI', description: 'Traversal/local file inclusion tests' }
+    { key: 'lfi', label: 'LFI', description: 'Traversal/local file inclusion tests' },
+    { key: 'nuclei', label: 'NUCLEI', description: 'Template-based web vulnerability matching' },
+    { key: 'playwright', label: 'PLAYWRIGHT', description: 'JS surface and endpoint exposure analysis' }
   ];
   
   // Para mostrar los resultados como acordeón después
@@ -79,7 +85,9 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
     this.terminalLogs = [`[+] CONNECTING TO DAST ENGINE...`, `[*] Target: ${this.targetUrl}`];
     this.cdr.detectChanges();
 
-    const activeKeys = Object.entries(this.activeModules).filter(([, v]) => v).map(([k]) => k).join(',') || 'all';
+    const activeKeys = this.allModulesActive
+      ? 'all'
+      : (Object.entries(this.activeModules).filter(([, v]) => v).map(([k]) => k).join(',') || 'all');
     const wsUrl = `ws://${window.location.hostname}:8000/api/vuln/live?target=${encodeURIComponent(this.targetUrl)}&modules=${activeKeys}`;
     this.socket = new WebSocket(wsUrl);
 
@@ -146,6 +154,16 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
     if (!Object.values(this.activeModules).some(Boolean)) {
       this.activeModules[moduleKey] = true;
     }
+  }
+
+  activateAllModules() {
+    Object.keys(this.activeModules).forEach((key) => {
+      this.activeModules[key] = true;
+    });
+  }
+
+  get allModulesActive() {
+    return Object.values(this.activeModules).every(Boolean);
   }
 
   get analysisSummary() {

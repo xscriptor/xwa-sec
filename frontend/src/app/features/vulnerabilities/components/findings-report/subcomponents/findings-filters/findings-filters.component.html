@@ -1,0 +1,35 @@
+<div class="filters-wrap">
+  <div class="filter-group">
+    <label class="t-label" for="severity-filter">SEVERITY</label>
+    <select 
+      id="severity-filter" 
+      [ngModel]="severityFilter"
+      (ngModelChange)="onSeverityChange($event)">
+      <option value="all">ALL</option>
+      <option value="critical">CRITICAL</option>
+      <option value="high">HIGH</option>
+      <option value="medium">MEDIUM</option>
+      <option value="low">LOW</option>
+      <option value="info">INFO</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label class="t-label" for="type-filter">FINDING TYPE</label>
+    <select 
+      id="type-filter" 
+      [ngModel]="typeFilter"
+      (ngModelChange)="onTypeChange($event)">
+      <option value="all">ALL</option>
+      <option *ngFor="let type of availableTypes" [value]="type">{{ type }}</option>
+    </select>
+  </div>
+
+  <button 
+    class="btn-reset" 
+    type="button" 
+    (click)="onResetClick()" 
+    [disabled]="!hasActiveFilters">
+    RESET FILTERS
+  </button>
+</div>
