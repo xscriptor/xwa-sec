@@ -1,0 +1,14 @@
+<div class="finding-row">
+  <div class="severity-dot" [ngClass]="finding.severity"></div>
+  <div class="finding-texts">
+    <span class="t-label">[{{ finding.finding_type }}]</span>
+    <span class="badge severity" [ngClass]="finding.severity">{{ finding.severity | uppercase }}</span>
+    <span class="badge" *ngIf="finding.cvss_score">CVSS: {{ finding.cvss_score }}</span>
+    <span class="t-body finding-description">{{ finding.description }}</span>
+
+    <div class="poc-block" *ngIf="finding.poc_payload">
+      <span class="t-label text-secondary">PROOF OF CONCEPT:</span>
+      <pre>{{ finding.poc_payload }}</pre>
+    </div>
+  </div>
+</div>

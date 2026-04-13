@@ -1,0 +1,24 @@
+<div *ngIf="filteredLinks.length">
+  <div class="t-label text-secondary">
+    MATCHED_NODES: {{ filteredLinks.length }} | MATCHED_FINDINGS: {{ severityCount(filteredLinks) }}
+  </div>
+
+  <details class="nothing-accordion" *ngFor="let link of filteredLinks">
+    <summary>
+      <div class="summary-info">
+        <span class="t-label status-code" *ngIf="!link.isGlobal">{{ link.status_code }} HTTP</span>
+        <span class="t-label status-code global" *ngIf="link.isGlobal">GLOBAL_SCOPE</span>
+        <span class="t-body">{{ link.url }}</span>
+      </div>
+      <span class="badge warning" *ngIf="link.findings.length">! {{ link.findings.length }} Issues</span>
+      <span class="badge success" *ngIf="!link.findings.length">Clean</span>
+    </summary>
+
+    <div class="accordion-content">
+      <span class="t-label text-secondary">Content-Type: {{ link.content_type }}</span>
+      <div *ngIf="!link.findings.length" class="t-body empty-node">No vulnerabilities detected on this specific node.</div>
+
+      <app-finding-item *ngFor="let vf of link.findings" [finding]="vf"></app-finding-item>
+    </div>
+  </details>
+</div>

@@ -2,6 +2,8 @@ import asyncio
 import requests
 import ssl
 import socket
+import shutil
+import re
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from fastapi import WebSocket
@@ -19,6 +21,28 @@ SENSITIVE_PATHS = [
 XSS_PAYLOADS = ["<script>alert(1)</script>", "javascript:alert(1)"]
 SQLI_PAYLOADS = ["' OR 1=1--", "'; DROP TABLE users--"]
 LFI_PAYLOADS = ["../../../../etc/passwd", "../../../../windows/win.ini"]
+JS_ENDPOINT_PATTERNS = [
+    r"fetch\(\s*['\"]([^'\"]+)['\"]",
+    r"axios\.(?:get|post|put|delete|patch)\(\s*['\"]([^'\"]+)['\"]",
+    r"open\(\s*['\"][A-Z]+['\"]\s*,\s*['\"]([^'\"]+)['\"]",
+    r"['\"](/api/[^'\"\s]+)['\"]",
+]
+
+
+def _parse_nuclei_severity(line: str) -> str:
+    match = re.search(r"\[(critical|high|medium|low|info)\]", line, re.IGNORECASE)
+    if not match:
+        return "medium"
+    return match.group(1).lower()
+
+
+def _extract_js_endpoints(script_content: str):
+    discovered = set()
+    for pattern in JS_ENDPOINT_PATTERNS:
+        for value in re.findall(pattern, script_content, flags=re.IGNORECASE):
+            if value and len(value) < 240:
+                discovered.add(value.strip())
+    return discovered
 
 async def audit_ssl(target_url: str, scan_record: models.Scan, websocket: WebSocket, db: Session):
     parsed = urlparse(target_url)
@@ -220,6 +244,227 @@ async def fuzz_paths(target_url, domain, scan_id, websocket, db, vulns_found):
             pass
 
 
+async def run_sqlmap_module(target_url, scan_id, websocket, db, vulns_found):
+    await websocket.send_text("[*] SQLMap module enabled. Running automated SQLi verification...")
+
+    if not shutil.which("sqlmap"):
+        await websocket.send_text("    [-] SQLMap binary not found. Skipping SQLMap module.")
+        return
+
+    process = await asyncio.create_subprocess_exec(
+        "sqlmap", "-u", target_url,
+        "--batch", "--level", "1", "--risk", "1", "--threads", "2", "--smart",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT
+    )
+
+    confirmed_sqli = False
+    indicator_line = ""
+    streamed_lines = 0
+
+    if process.stdout:
+        while True:
+            line = await process.stdout.readline()
+            if not line:
+                break
+
+            text_line = line.decode("utf-8", errors="ignore").rstrip()
+            if not text_line:
+                continue
+
+            if streamed_lines < 30:
+                await websocket.send_text(f"    [SQLMAP] {text_line}")
+                streamed_lines += 1
+
+            lower = text_line.lower()
+            if not confirmed_sqli and (
+                "is vulnerable" in lower
+                or "sql injection" in lower
+                or "parameter" in lower and "injectable" in lower
+            ):
+                confirmed_sqli = True
+                indicator_line = text_line
+
+    await process.wait()
+
+    if confirmed_sqli:
+        finding = models.Finding(
+            scan_id=scan_id,
+            link_id=None,
+            severity="critical",
+            finding_type="SQLMAP_CONFIRMED_SQLI",
+            description="SQLMap reported a potential injectable parameter on the target.",
+            cvss_score="9.8",
+            poc_payload=f"Target: {target_url}\nIndicator: {indicator_line}"
+        )
+        db.add(finding)
+        db.commit()
+        vulns_found[0] += 1
+        await websocket.send_text("    [!] CRITICAL: SQLMap confirmed a probable SQL Injection vector.")
+    else:
+        await websocket.send_text("    [i] SQLMap did not confirm SQLi on this run.")
+
+
+async def run_nuclei_module(target_url, scan_id, websocket, db, vulns_found):
+    await websocket.send_text("[*] Nuclei module enabled. Running template-based checks...")
+
+    if not shutil.which("nuclei"):
+        await websocket.send_text("    [-] Nuclei binary not found. Skipping Nuclei module.")
+        return
+
+    process = await asyncio.create_subprocess_exec(
+        "nuclei", "-u", target_url,
+        "-severity", "critical,high,medium,low,info",
+        "-silent",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT
+    )
+
+    match_count = 0
+
+    if process.stdout:
+        while True:
+            line = await process.stdout.readline()
+            if not line:
+                break
+
+            text_line = line.decode("utf-8", errors="ignore").rstrip()
+            if not text_line:
+                continue
+
+            await websocket.send_text(f"    [NUCLEI] {text_line}")
+
+            if match_count >= 20:
+                continue
+
+            severity = _parse_nuclei_severity(text_line)
+            finding = models.Finding(
+                scan_id=scan_id,
+                link_id=None,
+                severity=severity,
+                finding_type="NUCLEI_TEMPLATE_MATCH",
+                description="Nuclei reported a template match on the target.",
+                cvss_score=None,
+                poc_payload=text_line
+            )
+            db.add(finding)
+            match_count += 1
+
+    await process.wait()
+
+    if match_count > 0:
+        db.commit()
+        vulns_found[0] += match_count
+        await websocket.send_text(f"    [!] Nuclei generated {match_count} persisted findings.")
+    else:
+        await websocket.send_text("    [i] Nuclei did not report actionable matches.")
+
+
+async def inspect_playwright_surface(soup, current_url, link_id, scan_id, websocket, db, vulns_found):
+    script_endpoints = set()
+    internal_refs = set()
+    network_endpoints = set()
+
+    await websocket.send_text("    [*] PLAYWRIGHT: Launching headless browser for JS/runtime inspection...")
+
+    try:
+        from playwright.async_api import async_playwright
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-dev-shm-usage"]
+            )
+            context = await browser.new_context(ignore_https_errors=True)
+            page = await context.new_page()
+
+            def on_request(request):
+                network_endpoints.add(request.url)
+
+            page.on("request", on_request)
+
+            try:
+                await page.goto(current_url, wait_until="networkidle", timeout=12000)
+            except Exception:
+                await websocket.send_text("    [-] PLAYWRIGHT: Navigation timeout; collecting partial runtime telemetry.")
+
+            runtime_html = await page.content()
+            runtime_soup = BeautifulSoup(runtime_html, 'html.parser')
+
+            for script in runtime_soup.find_all("script"):
+                script_content = script.text or ""
+                if script_content.strip():
+                    extracted = _extract_js_endpoints(script_content)
+                    for endpoint in extracted:
+                        normalized = urljoin(current_url, endpoint) if endpoint.startswith("/") else endpoint
+                        script_endpoints.add(normalized)
+
+            await context.close()
+            await browser.close()
+    except Exception:
+        await websocket.send_text("    [-] PLAYWRIGHT runtime unavailable. Falling back to static JS analysis.")
+
+    for script in soup.find_all("script"):
+        script_src = script.get("src")
+        if script_src:
+            absolute = urljoin(current_url, script_src)
+            if "/api/" in absolute or any(k in absolute.lower() for k in ["graphql", "admin", "debug", "internal", "actuator"]):
+                script_endpoints.add(absolute)
+            if any(k in absolute.lower() for k in ["admin", "debug", "internal", "actuator"]):
+                internal_refs.add(absolute)
+
+        script_content = script.text or ""
+        if not script_content.strip():
+            continue
+
+        extracted = _extract_js_endpoints(script_content)
+        for endpoint in extracted:
+            normalized = urljoin(current_url, endpoint) if endpoint.startswith("/") else endpoint
+            script_endpoints.add(normalized)
+            lowered = normalized.lower()
+            if any(k in lowered for k in ["admin", "debug", "internal", "actuator"]):
+                internal_refs.add(normalized)
+
+    for net_url in network_endpoints:
+        lowered = net_url.lower()
+        if "/api/" in lowered or any(k in lowered for k in ["graphql", "admin", "debug", "internal", "actuator"]):
+            script_endpoints.add(net_url)
+        if any(k in lowered for k in ["admin", "debug", "internal", "actuator"]):
+            internal_refs.add(net_url)
+
+    if script_endpoints:
+        sample = sorted(script_endpoints)[:12]
+        finding = models.Finding(
+            scan_id=scan_id,
+            link_id=link_id,
+            severity="medium",
+            finding_type="PLAYWRIGHT_JS_SURFACE",
+            description=f"JavaScript endpoint surface discovered ({len(script_endpoints)} references).",
+            cvss_score="4.8",
+            poc_payload=f"Source URL: {current_url}\nDiscovered Endpoints:\n- " + "\n- ".join(sample)
+        )
+        db.add(finding)
+        db.commit()
+        vulns_found[0] += 1
+        await websocket.send_text(f"    [!] PLAYWRIGHT: JS surface mapped ({len(script_endpoints)} references).")
+
+    if internal_refs:
+        sample_sensitive = sorted(internal_refs)[:8]
+        finding = models.Finding(
+            scan_id=scan_id,
+            link_id=link_id,
+            severity="high",
+            finding_type="POTENTIAL_INTERNAL_API_EXPOSURE",
+            description="Potential internal/admin API references found in client-side scripts.",
+            cvss_score="6.4",
+            poc_payload=f"Source URL: {current_url}\nSensitive References:\n- " + "\n- ".join(sample_sensitive)
+        )
+        db.add(finding)
+        db.commit()
+        vulns_found[0] += 1
+        await websocket.send_text(f"    [!] HIGH: Potential internal endpoint references were exposed in JS.")
+
+
 async def perform_crawl(target_url: str, modules: str, websocket: WebSocket, db: Session):
     if not target_url.startswith("http"):
         target_url = "http://" + target_url
@@ -233,7 +478,9 @@ async def perform_crawl(target_url: str, modules: str, websocket: WebSocket, db:
     db.refresh(scan_record)
 
     await websocket.send_text(f"[+] INITIATING DAST ENGINE ON: {target_url}")
-    act_mod = modules.split(",")
+    act_mod = {m.strip() for m in modules.split(",") if m.strip()}
+    if not act_mod:
+        act_mod = {"all"}
     await websocket.send_text(f"[i] Active Modules: {modules}")
     
     vulns_found_ref = [0]
@@ -243,6 +490,12 @@ async def perform_crawl(target_url: str, modules: str, websocket: WebSocket, db:
         
     if "brute" in act_mod or "all" in act_mod:
         await fuzz_paths(target_url, domain, scan_record.id, websocket, db, vulns_found_ref)
+
+    if "sqlmap" in act_mod or "all" in act_mod:
+        await run_sqlmap_module(target_url, scan_record.id, websocket, db, vulns_found_ref)
+
+    if "nuclei" in act_mod or "all" in act_mod:
+        await run_nuclei_module(target_url, scan_record.id, websocket, db, vulns_found_ref)
     
     visited = set()
     to_visit = [target_url]
@@ -298,6 +551,9 @@ async def perform_crawl(target_url: str, modules: str, websocket: WebSocket, db:
                         await websocket.send_text(f"    [!] VULNERABILITY DETECTED: Insecure login form")
                         
                 await active_fuzz_forms(soup, current_url, db_link.id, scan_record.id, websocket, db, vulns_found_ref, act_mod)
+
+                if "playwright" in act_mod or "all" in act_mod:
+                    await inspect_playwright_surface(soup, current_url, db_link.id, scan_record.id, websocket, db, vulns_found_ref)
 
                 for link in soup.find_all('a', href=True):
                     href = link.get('href')
