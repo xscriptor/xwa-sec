@@ -12,48 +12,63 @@
   </header>
 
   <div class="dashboard-grid">
-    <section class="panel">
-      <h2 class="t-heading">TARGET_CONFIG</h2>
-      
-      <div class="input-group">
-        <label class="t-label">DOMAIN / IP</label>
-        <input type="text" [(ngModel)]="targetDomain" [disabled]="isScanning">
-      </div>
+    <app-scanner-target-config
+      [targetDomain]="targetDomain"
+      [scanProfile]="scanProfile"
+      [scanTimeout]="scanTimeout"
+      [webAppSurfaceScan]="webAppSurfaceScan"
+      [collectContactIntel]="collectContactIntel"
+      [detectUnsanitizedInputs]="detectUnsanitizedInputs"
+      [webMaxPages]="webMaxPages"
+      [isScanning]="isScanning"
+      [currentScanId]="currentScanId"
+      (targetDomainChange)="targetDomain = $event"
+      (scanProfileChange)="scanProfile = $event"
+      (scanTimeoutChange)="scanTimeout = $event"
+      (webAppSurfaceScanChange)="webAppSurfaceScan = $event"
+      (collectContactIntelChange)="collectContactIntel = $event"
+      (detectUnsanitizedInputsChange)="detectUnsanitizedInputs = $event"
+      (webMaxPagesChange)="webMaxPages = $event"
+      (initiate)="initiateScan()"
+      (cancel)="cancelScan()"
+    ></app-scanner-target-config>
 
-      <div class="input-group">
-        <label class="t-label">SCAN PROFILE</label>
-        <select [(ngModel)]="scanProfile" [disabled]="isScanning">
-          <option value="quick">QUICK - Top 100 common ports</option>
-          <option value="balanced">BALANCED - Top 1000 ports + service detection</option>
-          <option value="deep">DEEP - Scripts + top 2000 ports</option>
-          <option value="udp">UDP - Top 200 UDP ports</option>
-        </select>
-      </div>
+    <div class="stack-column">
+      <app-scanner-metrics
+        [vulnerabilitiesFound]="vulnerabilitiesFound"
+        [contactsFound]="contactsFound"
+        [unsanitizedFindings]="unsanitizedFindings"
+        [latestOpenPortDelta]="latestOpenPortDelta"
+        [openPortsDetailed]="openPortsDetailed"
+      ></app-scanner-metrics>
 
-      <div class="input-group">
-        <label class="t-label">TIMEOUT (SECONDS)</label>
-        <input type="number" min="30" max="900" [(ngModel)]="scanTimeout" [disabled]="isScanning">
-      </div>
-      
-      <button class="btn-primary destructive" (click)="initiateScan()" [disabled]="isScanning">
-        {{ isScanning ? 'SCAN IN PROGRESS' : 'INITIATE SCAN' }}
-      </button>
-    </section>
+      <app-scanner-terminal
+        [terminalLogs]="terminalLogs"
+        [isScanning]="isScanning"
+      ></app-scanner-terminal>
+    </div>
 
-    <section class="panel">
-      <div class="hero-metric">
-        <span class="t-label">PORTS_FOUND</span>
-        <span class="t-display-xl">{{ vulnerabilitiesFound }}</span>
-      </div>
-    </section>
+    <app-scanner-export-actions
+      class="full-width"
+      [hasExports]="!!currentScanDetail"
+      (exportCsv)="exportScannerAsCsv()"
+      (exportJson)="exportScannerAsJson()"
+      (exportPdf)="exportScannerAsPdf()"
+      (exportBinary)="exportScannerAsBinary()"
+    ></app-scanner-export-actions>
 
-    <section class="panel terminal-panel" style="grid-column: 1 / -1;">
-        <h2 class="t-label terminal-head">LIVE_TERMINAL_OUTPUT</h2>
-        
-        <div class="nothing-term" #scrollMe [scrollTop]="scrollMe.scrollHeight">
-            <pre *ngFor="let line of terminalLogs">{{ line }}</pre>
-            <div class="cursor" *ngIf="isScanning" style="display:inline-block; vertical-align: bottom;"></div>
-        </div>
-    </section>
+    <app-scanner-report
+      class="full-width"
+      [scanDetail]="currentScanDetail"
+      [openPortsDetailed]="openPortsDetailed"
+      (exportSnapshotChange)="onReportExportSnapshot($event)"
+    ></app-scanner-report>
+
+    <app-scanner-history
+      class="full-width"
+      [scannerHistory]="scannerHistory"
+      [selectedScanId]="currentScanId"
+      (selectScan)="selectScannerHistoryRun($event)"
+    ></app-scanner-history>
   </div>
 </div>

@@ -1,0 +1,57 @@
+:host {
+  display: block;
+}
+
+.panel {
+  border: 1px solid var(--border-visible);
+  min-width: 0;
+}
+
+.terminal-panel {
+  background-color: var(--black);
+  padding: 0;
+  border-color: var(--border-visible);
+
+  .terminal-head {
+    border-bottom: 1px solid var(--border-visible);
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--surface-raised);
+  }
+}
+
+.nothing-term {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-md);
+  height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--black);
+  min-width: 0;
+
+  pre {
+    font-family: var(--font-data);
+    color: var(--text-primary);
+    font-size: var(--body-sm);
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+    min-width: 0;
+  }
+
+  .cursor {
+    width: 10px;
+    height: 18px;
+    background-color: var(--text-primary);
+    animation: blink 1s step-start infinite;
+    margin-top: var(--space-xs);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
