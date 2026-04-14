@@ -28,11 +28,25 @@ async def websocket_scan(
     target: str,
     profile: str = "quick",
     timeout: int = 180,
+    web_scan: bool = False,
+    collect_contacts: bool = False,
+    scan_unsanitized: bool = False,
+    max_pages: int = 10,
     db: Session = Depends(database.get_db)
 ):
     await websocket.accept()
     try:
-        await scanner.perform_nmap_scan(target, websocket, db, profile=profile, timeout_seconds=timeout)
+        await scanner.perform_nmap_scan(
+            target,
+            websocket,
+            db,
+            profile=profile,
+            timeout_seconds=timeout,
+            web_scan=web_scan,
+            collect_contacts=collect_contacts,
+            scan_unsanitized=scan_unsanitized,
+            max_pages=max_pages,
+        )
     except WebSocketDisconnect:
         pass
     except Exception as e:
@@ -94,3 +108,11 @@ def delete_scan(scan_id: int, db: Session = Depends(database.get_db)):
     db.delete(scan)
     db.commit()
     return {"status": "deleted", "scan_id": scan_id}
+
+
+@app.post("/api/scan/cancel/{scan_id}")
+def cancel_scan(scan_id: int, db: Session = Depends(database.get_db)):
+    cancelled = scanner.request_cancel_scan(scan_id, db)
+    if not cancelled:
+        raise HTTPException(status_code=404, detail="Running scan not found")
+    return {"status": "cancellation-requested", "scan_id": scan_id}

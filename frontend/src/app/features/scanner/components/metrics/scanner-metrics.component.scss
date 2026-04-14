@@ -1,0 +1,75 @@
+:host {
+  display: block;
+}
+
+.panel {
+  padding: var(--space-lg);
+  border: 1px solid var(--border-visible);
+  background-color: var(--surface);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.hero-metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.open-ports-wrap {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.open-ports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-sm);
+}
+
+.port-pill {
+  border: 1px solid var(--border-visible);
+  background-color: var(--black);
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.port-token,
+.port-service,
+.port-version {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.port-token {
+  font-family: var(--font-data);
+  color: var(--text-primary);
+}
+
+.port-service,
+.port-version {
+  font-family: var(--font-body);
+  color: var(--text-secondary);
+  font-size: var(--body-sm);
+}
+
+@media (max-width: 900px) {
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .open-ports-grid {
+    grid-template-columns: 1fr;
+  }
+}

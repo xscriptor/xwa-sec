@@ -1,0 +1,73 @@
+<section class="panel">
+  <h2 class="t-heading">TARGET_CONFIG</h2>
+
+  <div class="input-group">
+    <label class="t-label">DOMAIN / IP</label>
+    <input type="text" [ngModel]="targetDomain" (ngModelChange)="targetDomainChange.emit($event)" [disabled]="isScanning">
+  </div>
+
+  <div class="input-group">
+    <label class="t-label">SCAN PROFILE</label>
+    <select [ngModel]="scanProfile" (ngModelChange)="scanProfileChange.emit($event)" [disabled]="isScanning">
+      <option value="quick">QUICK - Top 100 common ports</option>
+      <option value="balanced">BALANCED - Top 1000 ports + service detection</option>
+      <option value="deep">DEEP - Scripts + top 2000 ports</option>
+      <option value="udp">UDP - Top 200 UDP ports</option>
+    </select>
+  </div>
+
+  <div class="input-group">
+    <label class="t-label">TIMEOUT (SECONDS)</label>
+    <input type="number" min="30" max="900" [ngModel]="scanTimeout" (ngModelChange)="scanTimeoutChange.emit($event)" [disabled]="isScanning">
+  </div>
+
+  <div class="module-grid">
+    <button
+      type="button"
+      class="module-chip"
+      [class.active]="webAppSurfaceScan"
+      [disabled]="isScanning"
+      (click)="webAppSurfaceScanChange.emit(!webAppSurfaceScan)"
+    >
+      <span class="t-label">WEB APP SURFACE</span>
+      <span class="chip-help">Crawl links and map app-layer exposure</span>
+    </button>
+
+    <button
+      type="button"
+      class="module-chip"
+      [class.active]="collectContactIntel"
+      [disabled]="isScanning || !webAppSurfaceScan"
+      (click)="collectContactIntelChange.emit(!collectContactIntel)"
+    >
+      <span class="t-label">CONTACT INTEL</span>
+      <span class="chip-help">Extract emails/phones per link</span>
+    </button>
+
+    <button
+      type="button"
+      class="module-chip"
+      [class.active]="detectUnsanitizedInputs"
+      [disabled]="isScanning || !webAppSurfaceScan"
+      (click)="detectUnsanitizedInputsChange.emit(!detectUnsanitizedInputs)"
+    >
+      <span class="t-label">UNSANITIZED INPUTS</span>
+      <span class="chip-help">Detect unbounded fields and reflection surfaces</span>
+    </button>
+  </div>
+
+  <div class="input-group" *ngIf="webAppSurfaceScan">
+    <label class="t-label">MAX WEB PAGES</label>
+    <input type="number" min="1" max="40" [ngModel]="webMaxPages" (ngModelChange)="webMaxPagesChange.emit($event)" [disabled]="isScanning">
+  </div>
+
+  <div class="action-row">
+    <button class="btn-primary destructive" (click)="initiate.emit()" [disabled]="isScanning">
+      {{ isScanning ? 'SCAN IN PROGRESS' : 'INITIATE SCAN' }}
+    </button>
+
+    <button class="btn-secondary" (click)="cancel.emit()" [disabled]="!isScanning || !currentScanId">
+      CANCEL RUN
+    </button>
+  </div>
+</section>
