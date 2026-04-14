@@ -39,6 +39,74 @@
     </div>
   </div>
 
+  <div class="auth-config" *ngIf="activeModules['auth_scan']">
+    <div class="auth-header">
+      <label class="t-label">AUTHENTICATED SCAN CONTEXT</label>
+      <span class="chip-help">Optional. If empty, the scan runs unauthenticated boundary checks only.</span>
+    </div>
+
+    <div class="auth-grid">
+      <div class="input-group compact full-row">
+        <label class="t-label">AUTH PRIORITY</label>
+        <select
+          [ngModel]="authScanConfig.authMode"
+          (ngModelChange)="patchAuthScanConfig({ authMode: $event })"
+          [disabled]="isScanning"
+        >
+          <option value="bearer_first">BEARER FIRST (fallback BASIC)</option>
+          <option value="basic_first">BASIC FIRST (fallback BEARER)</option>
+        </select>
+      </div>
+
+      <div class="input-group compact">
+        <label class="t-label">BEARER TOKEN</label>
+        <input
+          type="password"
+          [ngModel]="authScanConfig.bearerToken"
+          (ngModelChange)="patchAuthScanConfig({ bearerToken: $event })"
+          [disabled]="isScanning"
+          placeholder="eyJhbGciOi..."
+        >
+        <span class="chip-help">MASKED: {{ maskSensitive(authScanConfig.bearerToken) }}</span>
+      </div>
+
+      <div class="input-group compact">
+        <label class="t-label">BASIC USER</label>
+        <input
+          type="text"
+          [ngModel]="authScanConfig.basicUser"
+          (ngModelChange)="patchAuthScanConfig({ basicUser: $event })"
+          [disabled]="isScanning"
+          placeholder="username"
+        >
+      </div>
+
+      <div class="input-group compact">
+        <label class="t-label">BASIC PASSWORD</label>
+        <input
+          type="password"
+          [ngModel]="authScanConfig.basicPass"
+          (ngModelChange)="patchAuthScanConfig({ basicPass: $event })"
+          [disabled]="isScanning"
+          placeholder="password"
+        >
+        <span class="chip-help">MASKED: {{ maskSensitive(authScanConfig.basicPass) }}</span>
+      </div>
+
+      <div class="input-group compact full-row">
+        <label class="t-label">COOKIE HEADER</label>
+        <input
+          type="text"
+          [ngModel]="authScanConfig.cookieHeader"
+          (ngModelChange)="patchAuthScanConfig({ cookieHeader: $event })"
+          [disabled]="isScanning"
+          placeholder="session=...; csrftoken=..."
+        >
+        <span class="chip-help">MASKED: {{ maskSensitive(authScanConfig.cookieHeader) }}</span>
+      </div>
+    </div>
+  </div>
+
   <button class="btn-primary destructive" (click)="initiate.emit()" [disabled]="isScanning">
     {{ isScanning ? 'DAST SCAN IN PROGRESS' : 'INITIATE DAST SCAN' }}
   </button>

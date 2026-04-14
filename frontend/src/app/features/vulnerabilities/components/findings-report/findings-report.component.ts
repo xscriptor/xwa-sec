@@ -2,6 +2,9 @@ import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { gzip } from 'pako';
 import { DiscoveredLink, Finding, ScanDetail, SeverityLevel } from '../../models/vulnerabilities.models';
 import { FindingsFiltersComponent } from './subcomponents/findings-filters/findings-filters.component';
 import { FindingsExportActionsComponent } from './subcomponents/findings-export-actions/findings-export-actions.component';
@@ -133,16 +136,7 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
   }
 
   exportFindingsAsJson() {
-    const payload = {
-      scanId: this.completedScanDetails?.id ?? null,
-      target: this.completedScanDetails?.domain_target ?? null,
-      exportedAt: new Date().toISOString(),
-      filters: {
-        severity: this.severityFilter,
-        type: this.typeFilter
-      },
-      findings: this.flattenFilteredFindings()
-    };
+    const payload = this.buildExportPayload();
 
     this.downloadTextFile(
       `xwa-sec-findings-scan-${this.completedScanDetails?.id ?? 'unknown'}.json`,
@@ -152,33 +146,51 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
   }
 
   exportFindingsAsPdf() {
-    const rows = this.flattenFilteredFindings();
-    const printable = this.buildPrintableReport(rows);
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=980,height=720');
+    const rows = this.flattenAllFindings();
+    const scanId = this.completedScanDetails?.id ?? 'unknown';
+    const target = this.completedScanDetails?.domain_target ?? 'unknown';
 
-    if (!printWindow) return;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    doc.setFontSize(14);
+    doc.text(`XWA-SEC Vulnerability Report | Scan #${scanId}`, 40, 36);
+    doc.setFontSize(10);
+    doc.text(`Target: ${target}`, 40, 54);
+    doc.text(`Exported: ${new Date().toISOString()}`, 40, 68);
+    doc.text(
+      `Current Filters: severity=${this.severityFilter} type=${this.typeFilter} | Full dataset exported`,
+      40,
+      82
+    );
 
-    printWindow.document.write(printable);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    autoTable(doc, {
+      startY: 96,
+      head: [['Node', 'URL', 'Type', 'Severity', 'CVSS', 'Description', 'PoC', 'Matches Filters']],
+      body: rows.map((row) => [
+        row['node_type'] || '',
+        row['url'] || '',
+        row['finding_type'] || '',
+        String(row['severity'] || '').toUpperCase(),
+        row['cvss_score'] || '',
+        row['description'] || '',
+        row['poc_payload'] || '',
+        row['matches_current_filters'] ? 'YES' : 'NO'
+      ]),
+      styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
+      headStyles: { fillColor: [35, 35, 35] },
+      columnStyles: {
+        1: { cellWidth: 150 },
+        5: { cellWidth: 180 },
+        6: { cellWidth: 180 }
+      }
+    });
+
+    doc.save(`xwa-sec-findings-scan-${scanId}.pdf`);
   }
 
   exportFindingsAsBinary() {
-    const payload = {
-      scanId: this.completedScanDetails?.id ?? null,
-      target: this.completedScanDetails?.domain_target ?? null,
-      exportedAt: new Date().toISOString(),
-      filters: {
-        severity: this.severityFilter,
-        type: this.typeFilter
-      },
-      findings: this.flattenFilteredFindings()
-    };
-
+    const payload = this.buildExportPayload();
     const content = JSON.stringify(payload);
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(content);
+    const bytes = gzip(content);
     const blob = new Blob([bytes], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -189,7 +201,7 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
   }
 
   exportFindingsAsCsv() {
-    const rows = this.flattenFilteredFindings();
+    const rows = this.flattenAllFindings();
     const headers = [
       'scan_id',
       'node_type',
@@ -200,7 +212,8 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
       'severity',
       'cvss_score',
       'description',
-      'poc_payload'
+      'poc_payload',
+      'matches_current_filters'
     ];
 
     const csvLines = [headers.join(',')];
@@ -216,10 +229,10 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
     );
   }
 
-  private flattenFilteredFindings() {
+  private flattenAllFindings() {
     const rows: Array<Record<string, string | number | null>> = [];
 
-    this.filteredLinks.forEach((node) => {
+    this.findingsNodes.forEach((node) => {
       node.findings.forEach((finding) => {
         rows.push({
           scan_id: finding.scan_id,
@@ -231,12 +244,41 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
           severity: finding.severity,
           cvss_score: finding.cvss_score,
           description: finding.description,
-          poc_payload: finding.poc_payload
+          poc_payload: finding.poc_payload,
+          matches_current_filters: this.matchesFilters(finding) ? 'true' : 'false'
         });
       });
     });
 
     return rows;
+  }
+
+  private buildExportPayload() {
+    const scan = this.completedScanDetails;
+    const allRows = this.flattenAllFindings();
+
+    return {
+      scanId: scan?.id ?? null,
+      target: scan?.domain_target ?? null,
+      scanStatus: scan?.status ?? null,
+      scanType: scan?.scan_type ?? null,
+      scanCreatedAt: scan?.created_at ?? null,
+      exportedAt: new Date().toISOString(),
+      filters: {
+        severity: this.severityFilter,
+        type: this.typeFilter
+      },
+      stats: {
+        totalNodes: this.findingsNodes.length,
+        totalFindings: allRows.length,
+        findingsMatchingCurrentFilters: this.filteredFindingsCount,
+        globalFindings: this.globalFindings.length,
+        linkFindings: Math.max(allRows.length - this.globalFindings.length, 0)
+      },
+      globalFindings: this.globalFindings,
+      discoveredLinks: scan?.discovered_links ?? [],
+      flattenedFindings: allRows
+    };
   }
 
   private escapeCsv(value: string | number | null | undefined) {
@@ -252,60 +294,6 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
     anchor.download = fileName;
     anchor.click();
     URL.revokeObjectURL(url);
-  }
-
-  private buildPrintableReport(rows: Array<Record<string, string | number | null>>) {
-    const scanId = this.completedScanDetails?.id ?? 'unknown';
-    const target = this.completedScanDetails?.domain_target ?? 'unknown';
-    const header = `<h1>XWA-SEC Vulnerability Report</h1>
-<p><strong>Scan ID:</strong> ${scanId}</p>
-<p><strong>Target:</strong> ${target}</p>
-<p><strong>Severity Filter:</strong> ${this.severityFilter.toUpperCase()} | <strong>Type Filter:</strong> ${this.typeFilter}</p>
-<p><strong>Exported:</strong> ${new Date().toISOString()}</p>`;
-
-    const tableRows = rows.map((row) => `
-      <tr>
-        <td>${row['node_type'] ?? ''}</td>
-        <td>${row['url'] ?? ''}</td>
-        <td>${row['finding_type'] ?? ''}</td>
-        <td>${String(row['severity'] ?? '').toUpperCase()}</td>
-        <td>${row['cvss_score'] ?? ''}</td>
-        <td>${row['description'] ?? ''}</td>
-      </tr>
-    `).join('');
-
-    return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>XWA-SEC Report ${scanId}</title>
-    <style>
-      body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
-      h1 { margin: 0 0 16px; }
-      p { margin: 4px 0; }
-      table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-      th, td { border: 1px solid #ccc; padding: 6px; text-align: left; vertical-align: top; }
-      th { background: #f3f3f3; }
-      @media print { body { padding: 0; } }
-    </style>
-  </head>
-  <body>
-    ${header}
-    <table>
-      <thead>
-        <tr>
-          <th>Node</th>
-          <th>URL</th>
-          <th>Type</th>
-          <th>Severity</th>
-          <th>CVSS</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>${tableRows}</tbody>
-    </table>
-  </body>
-</html>`;
   }
 
   severityCount(links: FindingsNode[]) {

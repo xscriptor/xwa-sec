@@ -11,11 +11,15 @@ import { FormsModule } from '@angular/forms';
 })
 export class ScannerComponent implements OnDestroy {
   targetDomain = 'scanme.nmap.org';
+  scanProfile: 'quick' | 'balanced' | 'deep' | 'udp' = 'quick';
+  scanTimeout = 180;
   isScanning = false;
   socket: WebSocket | null = null;
   terminalLogs: string[] = ['[ SYSTEM READY ] Waiting for target config...'];
 
   vulnerabilitiesFound = 0;
+  private openPortsSet = new Set<string>();
+  private readonly maxTerminalLines = 1200;
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -26,16 +30,29 @@ export class ScannerComponent implements OnDestroy {
     this.isScanning = true;
     this.terminalLogs = [`[+] CONNECTING TO ENGINE FOR SCANNING: ${this.targetDomain}...`];
     this.vulnerabilitiesFound = 0;
+    this.openPortsSet.clear();
     this.cdr.detectChanges();
 
-    const wsUrl = `ws://${window.location.hostname}:8000/api/scan/live?target=${encodeURIComponent(this.targetDomain)}`;
+    const wsParams = new URLSearchParams({
+      target: this.targetDomain,
+      profile: this.scanProfile,
+      timeout: String(this.scanTimeout)
+    });
+    const wsUrl = `ws://${window.location.hostname}:8000/api/scan/live?${wsParams.toString()}`;
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onmessage = (event) => {
       console.log("WS SCAN MESSAGE:", event.data);
       this.terminalLogs.push(event.data);
-      if (event.data.includes('open')) {
-        this.vulnerabilitiesFound++;
+
+      if (this.terminalLogs.length > this.maxTerminalLines) {
+        this.terminalLogs = this.terminalLogs.slice(-this.maxTerminalLines);
+      }
+
+      const parsedPort = this.extractOpenPortToken(event.data);
+      if (parsedPort) {
+        this.openPortsSet.add(parsedPort);
+        this.vulnerabilitiesFound = this.openPortsSet.size;
       }
       this.cdr.detectChanges();
     };
@@ -59,5 +76,11 @@ export class ScannerComponent implements OnDestroy {
     if (this.socket) {
       this.socket.close();
     }
+  }
+
+  private extractOpenPortToken(line: string) {
+    const match = line.match(/^(\d+)\/(tcp|udp)\s+open\b/i);
+    if (!match) return null;
+    return `${match[1]}/${match[2].toLowerCase()}`;
   }
 }

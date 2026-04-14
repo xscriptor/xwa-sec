@@ -18,6 +18,9 @@
     "@angular/platform-browser": "^21.2.8",
     "@angular/platform-browser-dynamic": "^21.2.8",
     "@angular/router": "^21.2.8",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "pako": "^2.1.0",
     "rxjs": "~7.8.1",
     "tslib": "^2.6.2",
     "zone.js": "~0.15.0"

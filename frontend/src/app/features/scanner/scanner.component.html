@@ -19,6 +19,21 @@
         <label class="t-label">DOMAIN / IP</label>
         <input type="text" [(ngModel)]="targetDomain" [disabled]="isScanning">
       </div>
+
+      <div class="input-group">
+        <label class="t-label">SCAN PROFILE</label>
+        <select [(ngModel)]="scanProfile" [disabled]="isScanning">
+          <option value="quick">QUICK - Top 100 common ports</option>
+          <option value="balanced">BALANCED - Top 1000 ports + service detection</option>
+          <option value="deep">DEEP - Scripts + top 2000 ports</option>
+          <option value="udp">UDP - Top 200 UDP ports</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label class="t-label">TIMEOUT (SECONDS)</label>
+        <input type="number" min="30" max="900" [(ngModel)]="scanTimeout" [disabled]="isScanning">
+      </div>
       
       <button class="btn-primary destructive" (click)="initiateScan()" [disabled]="isScanning">
         {{ isScanning ? 'SCAN IN PROGRESS' : 'INITIATE SCAN' }}

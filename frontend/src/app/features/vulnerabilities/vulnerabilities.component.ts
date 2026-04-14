@@ -34,6 +34,16 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
   isScanning = false;
   socket: WebSocket | null = null;
   terminalLogs: string[] = ['[ SYSTEM READY ] Waiting for target config...'];
+
+  authScanConfig = {
+    authMode: 'bearer_first',
+    bearerToken: '',
+    basicUser: '',
+    basicPass: '',
+    cookieHeader: ''
+  };
+
+  private readonly authScanStorageKey = 'xwa-sec-auth-scan-config';
   
   activeModules: Record<string, boolean> = {
     tls: true,
@@ -45,7 +55,10 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
     xss: true,
     lfi: true,
     nuclei: true,
-    playwright: true
+    playwright: true,
+    api_security: true,
+    auth_scan: true,
+    js_secret: true
   };
 
   moduleOptions = [
@@ -58,7 +71,10 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
     { key: 'xss', label: 'XSS', description: 'Reflected script execution checks' },
     { key: 'lfi', label: 'LFI', description: 'Traversal/local file inclusion tests' },
     { key: 'nuclei', label: 'NUCLEI', description: 'Template-based web vulnerability matching' },
-    { key: 'playwright', label: 'PLAYWRIGHT', description: 'JS surface and endpoint exposure analysis' }
+    { key: 'playwright', label: 'PLAYWRIGHT', description: 'JS surface and endpoint exposure analysis' },
+    { key: 'api_security', label: 'API SECURITY', description: 'API docs/schema/method exposure and endpoint hygiene audit' },
+    { key: 'auth_scan', label: 'AUTH SCAN', description: 'Authorization boundary probing on sensitive routes' },
+    { key: 'js_secret', label: 'JS SECRET', description: 'Client-side JavaScript secret and token leakage analysis' }
   ];
   
   // Para mostrar los resultados como acordeón después
@@ -68,10 +84,20 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private route: ActivatedRoute) {}
 
   ngOnInit() {
+    this.loadAuthScanConfigFromStorage();
+
     this.route.queryParamMap.subscribe((params) => {
       const scanId = Number(params.get('scanId'));
       if (Number.isInteger(scanId) && scanId > 0) {
         this.loadScanById(scanId);
+      }
+
+      const authModeParam = (params.get('authMode') || '').toLowerCase();
+      if (authModeParam === 'basic_first' || authModeParam === 'bearer_first') {
+        this.authScanConfig = {
+          ...this.authScanConfig,
+          authMode: authModeParam
+        };
       }
     });
   }
@@ -88,7 +114,27 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
     const activeKeys = this.allModulesActive
       ? 'all'
       : (Object.entries(this.activeModules).filter(([, v]) => v).map(([k]) => k).join(',') || 'all');
-    const wsUrl = `ws://${window.location.hostname}:8000/api/vuln/live?target=${encodeURIComponent(this.targetUrl)}&modules=${activeKeys}`;
+
+    const wsParams = new URLSearchParams({
+      target: this.targetUrl,
+      modules: activeKeys
+    });
+
+    if (this.authScanConfig.bearerToken.trim()) {
+      wsParams.set('auth_bearer', this.authScanConfig.bearerToken.trim());
+    }
+    if (this.authScanConfig.basicUser.trim()) {
+      wsParams.set('auth_user', this.authScanConfig.basicUser.trim());
+    }
+    if (this.authScanConfig.basicPass.trim()) {
+      wsParams.set('auth_pass', this.authScanConfig.basicPass);
+    }
+    if (this.authScanConfig.cookieHeader.trim()) {
+      wsParams.set('auth_cookie', this.authScanConfig.cookieHeader.trim());
+    }
+    wsParams.set('auth_mode', this.authScanConfig.authMode);
+
+    const wsUrl = `ws://${window.location.hostname}:8000/api/vuln/live?${wsParams.toString()}`;
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onmessage = (event) => {
@@ -111,6 +157,49 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
       this.isScanning = false;
       this.cdr.detectChanges(); // Force update
     };
+  }
+
+  onAuthScanConfigChange(nextConfig: { authMode: string; bearerToken: string; basicUser: string; basicPass: string; cookieHeader: string }) {
+    const normalizedMode = nextConfig.authMode === 'basic_first' ? 'basic_first' : 'bearer_first';
+
+    this.authScanConfig = {
+      ...nextConfig,
+      authMode: normalizedMode
+    };
+
+    this.persistAuthScanConfig();
+  }
+
+  private persistAuthScanConfig() {
+    try {
+      localStorage.setItem(this.authScanStorageKey, JSON.stringify(this.authScanConfig));
+    } catch {
+      // Storage may be unavailable in restrictive browser contexts.
+    }
+  }
+
+  private loadAuthScanConfigFromStorage() {
+    try {
+      const raw = localStorage.getItem(this.authScanStorageKey);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as Partial<{ authMode: string; bearerToken: string; basicUser: string; basicPass: string; cookieHeader: string }>;
+      this.authScanConfig = {
+        authMode: parsed.authMode === 'basic_first' ? 'basic_first' : 'bearer_first',
+        bearerToken: parsed.bearerToken || '',
+        basicUser: parsed.basicUser || '',
+        basicPass: parsed.basicPass || '',
+        cookieHeader: parsed.cookieHeader || ''
+      };
+    } catch {
+      this.authScanConfig = {
+        authMode: 'bearer_first',
+        bearerToken: '',
+        basicUser: '',
+        basicPass: '',
+        cookieHeader: ''
+      };
+    }
   }
 
   fetchLatestScan() {

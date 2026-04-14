@@ -23,10 +23,16 @@ def read_root():
     return {"status": "ok", "message": "XWA Sec Engine Running with WebSockets enabled"}
 
 @app.websocket("/api/scan/live")
-async def websocket_scan(websocket: WebSocket, target: str, db: Session = Depends(database.get_db)):
+async def websocket_scan(
+    websocket: WebSocket,
+    target: str,
+    profile: str = "quick",
+    timeout: int = 180,
+    db: Session = Depends(database.get_db)
+):
     await websocket.accept()
     try:
-        await scanner.perform_nmap_scan(target, websocket, db)
+        await scanner.perform_nmap_scan(target, websocket, db, profile=profile, timeout_seconds=timeout)
     except WebSocketDisconnect:
         pass
     except Exception as e:
@@ -34,10 +40,27 @@ async def websocket_scan(websocket: WebSocket, target: str, db: Session = Depend
         await websocket.close()
 
 @app.websocket("/api/vuln/live")
-async def websocket_vuln_crawler(websocket: WebSocket, target: str, modules: str = "all", db: Session = Depends(database.get_db)):
+async def websocket_vuln_crawler(
+    websocket: WebSocket,
+    target: str,
+    modules: str = "all",
+    auth_mode: str = "bearer_first",
+    auth_bearer: str = "",
+    auth_user: str = "",
+    auth_pass: str = "",
+    auth_cookie: str = "",
+    db: Session = Depends(database.get_db)
+):
     await websocket.accept()
     try:
-        await crawler.perform_crawl(target, modules, websocket, db)
+        auth_context = {
+            "mode": auth_mode,
+            "bearer": auth_bearer,
+            "user": auth_user,
+            "password": auth_pass,
+            "cookie": auth_cookie,
+        }
+        await crawler.perform_crawl(target, modules, websocket, db, auth_context)
     except WebSocketDisconnect:
         pass
     except Exception as e:

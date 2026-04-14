@@ -16,7 +16,8 @@
   flex-direction: column;
   gap: var(--space-xs);
 
-  input {
+  input,
+  select {
     background-color: var(--black);
     color: var(--text-primary);
     border: 1px solid var(--border-visible);
@@ -39,6 +40,40 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+.auth-config {
+  border: 1px dashed var(--border-visible);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.auth-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.input-group.compact {
+  gap: 4px;
+
+  input {
+    padding: var(--space-sm);
+    font-size: var(--body-sm);
+  }
+
+  &.full-row {
+    grid-column: 1 / -1;
+  }
 }
 
 .module-grid {
@@ -130,5 +165,13 @@
     .btn-secondary {
       width: 100%;
     }
+  }
+
+  .auth-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-group.compact.full-row {
+    grid-column: auto;
   }
 }

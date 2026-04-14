@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import requests
 import ssl
 import socket
@@ -28,6 +29,38 @@ JS_ENDPOINT_PATTERNS = [
     r"['\"](/api/[^'\"\s]+)['\"]",
 ]
 
+API_DISCOVERY_PATHS = [
+    "/openapi.json",
+    "/swagger.json",
+    "/swagger-ui",
+    "/swagger-ui/",
+    "/api-docs",
+    "/graphql",
+    "/actuator",
+    "/actuator/health",
+    "/api",
+    "/api/v1",
+]
+
+AUTH_PROTECTED_CANDIDATES = [
+    "/admin",
+    "/dashboard",
+    "/settings",
+    "/profile",
+    "/api/admin",
+    "/api/private",
+    "/internal",
+]
+
+JS_SECRET_PATTERNS = [
+    ("AWS_ACCESS_KEY_ID", r"AKIA[0-9A-Z]{16}"),
+    ("GITHUB_TOKEN", r"ghp_[A-Za-z0-9]{36}"),
+    ("STRIPE_LIVE_KEY", r"sk_live_[0-9a-zA-Z]{16,}"),
+    ("JWT_TOKEN", r"eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}"),
+    ("GENERIC_API_KEY", r"(?i)(api[_-]?key|token|secret)\s*[:=]\s*['\"][A-Za-z0-9_\-\.]{12,}['\"]"),
+    ("PRIVATE_KEY_BLOCK", r"-----BEGIN (?:RSA|EC|DSA|OPENSSH|PGP) PRIVATE KEY-----"),
+]
+
 
 def _parse_nuclei_severity(line: str) -> str:
     match = re.search(r"\[(critical|high|medium|low|info)\]", line, re.IGNORECASE)
@@ -43,6 +76,37 @@ def _extract_js_endpoints(script_content: str):
             if value and len(value) < 240:
                 discovered.add(value.strip())
     return discovered
+
+
+def _build_auth_headers(auth_context: dict | None):
+    if not auth_context:
+        return {}
+
+    headers = {}
+
+    bearer = (auth_context.get("bearer") or "").strip()
+    user = (auth_context.get("user") or "").strip()
+    password = auth_context.get("password") or ""
+    cookie = (auth_context.get("cookie") or "").strip()
+    mode = (auth_context.get("mode") or "bearer_first").strip().lower()
+
+    if mode == "basic_first":
+        if user:
+            credentials = f"{user}:{password}".encode("utf-8")
+            headers["Authorization"] = "Basic " + base64.b64encode(credentials).decode("utf-8")
+        elif bearer:
+            headers["Authorization"] = f"Bearer {bearer}"
+    else:
+        if bearer:
+            headers["Authorization"] = f"Bearer {bearer}"
+        elif user:
+            credentials = f"{user}:{password}".encode("utf-8")
+            headers["Authorization"] = "Basic " + base64.b64encode(credentials).decode("utf-8")
+
+    if cookie:
+        headers["Cookie"] = cookie
+
+    return headers
 
 async def audit_ssl(target_url: str, scan_record: models.Scan, websocket: WebSocket, db: Session):
     parsed = urlparse(target_url)
@@ -360,6 +424,211 @@ async def run_nuclei_module(target_url, scan_id, websocket, db, vulns_found):
         await websocket.send_text("    [i] Nuclei did not report actionable matches.")
 
 
+async def run_api_security_module(target_url, scan_id, websocket, db, vulns_found):
+    await websocket.send_text("[*] API Security module enabled. Probing common API exposure surfaces...")
+
+    findings_created = 0
+    for path in API_DISCOVERY_PATHS:
+        probe_url = urljoin(target_url.rstrip('/') + '/', path.lstrip('/'))
+        try:
+            res = await asyncio.to_thread(requests.get, probe_url, timeout=4)
+        except Exception:
+            continue
+
+        body_preview = (res.text or "")[:300].lower()
+        if res.status_code == 200 and any(k in body_preview for k in ["openapi", "swagger", "graphql", "actuator", "paths"]):
+            sev = "high" if "openapi" in body_preview or "swagger" in body_preview else "medium"
+            finding = models.Finding(
+                scan_id=scan_id,
+                link_id=None,
+                severity=sev,
+                finding_type="API_DOCS_OR_SCHEMA_EXPOSED",
+                description="Potentially sensitive API documentation or schema endpoint is publicly accessible.",
+                cvss_score="6.5" if sev == "high" else "4.8",
+                poc_payload=f"GET {probe_url} -> HTTP {res.status_code}\nPreview: {body_preview[:200]}"
+            )
+            db.add(finding)
+            findings_created += 1
+            await websocket.send_text(f"    [!] {sev.upper()}: API exposure detected at {path}")
+
+        allow_header = (res.headers.get("Allow") or "").upper()
+        if res.status_code in (200, 204) and any(m in allow_header for m in ["PUT", "DELETE", "PATCH"]):
+            finding = models.Finding(
+                scan_id=scan_id,
+                link_id=None,
+                severity="medium",
+                finding_type="RISKY_HTTP_METHODS_EXPOSED",
+                description="Endpoint advertises potentially risky HTTP methods without prior auth context.",
+                cvss_score="5.3",
+                poc_payload=f"URL: {probe_url}\nAllow: {allow_header}"
+            )
+            db.add(finding)
+            findings_created += 1
+            await websocket.send_text(f"    [!] MEDIUM: Risky methods exposed at {path}")
+
+    if findings_created:
+        db.commit()
+        vulns_found[0] += findings_created
+    else:
+        await websocket.send_text("    [i] API Security module did not detect high-confidence exposures.")
+
+
+async def run_authenticated_scan_module(target_url, scan_id, websocket, db, vulns_found, auth_context=None):
+    await websocket.send_text("[*] Authenticated Scan module enabled. Testing access control boundaries...")
+
+    open_sensitive = []
+    guarded_sensitive = []
+    authenticated_access = []
+    auth_headers = _build_auth_headers(auth_context)
+
+    has_auth_context = bool(auth_headers)
+    if has_auth_context:
+        await websocket.send_text("    [i] Auth context provided. Running comparative auth/non-auth route probing.")
+    else:
+        await websocket.send_text("    [i] No auth context provided. Running boundary-only checks.")
+
+    for path in AUTH_PROTECTED_CANDIDATES:
+        probe_url = urljoin(target_url.rstrip('/') + '/', path.lstrip('/'))
+        try:
+            res = await asyncio.to_thread(requests.get, probe_url, timeout=4, allow_redirects=False)
+        except Exception:
+            continue
+
+        if res.status_code in (401, 403):
+            guarded_sensitive.append((probe_url, res.status_code))
+            continue
+
+        if res.status_code in (200, 302):
+            open_sensitive.append((probe_url, res.status_code))
+
+        if has_auth_context:
+            try:
+                auth_res = await asyncio.to_thread(
+                    requests.get,
+                    probe_url,
+                    timeout=4,
+                    allow_redirects=False,
+                    headers=auth_headers
+                )
+                if auth_res.status_code in (200, 302):
+                    authenticated_access.append((probe_url, auth_res.status_code))
+            except Exception:
+                pass
+
+    findings_created = 0
+
+    if open_sensitive:
+        sample = open_sensitive[:6]
+        finding = models.Finding(
+            scan_id=scan_id,
+            link_id=None,
+            severity="high",
+            finding_type="MISSING_AUTHORIZATION_BOUNDARY",
+            description="Potentially sensitive routes are reachable without explicit authentication challenge.",
+            cvss_score="7.1",
+            poc_payload="\n".join([f"GET {url} -> HTTP {code}" for url, code in sample])
+        )
+        db.add(finding)
+        findings_created += 1
+        await websocket.send_text(f"    [!] HIGH: {len(open_sensitive)} sensitive route(s) reachable without auth challenge.")
+
+    if guarded_sensitive:
+        sample = guarded_sensitive[:6]
+        finding = models.Finding(
+            scan_id=scan_id,
+            link_id=None,
+            severity="info",
+            finding_type="AUTH_GUARD_PRESENT",
+            description="Sensitive routes responded with authentication/authorization challenge.",
+            cvss_score=None,
+            poc_payload="\n".join([f"GET {url} -> HTTP {code}" for url, code in sample])
+        )
+        db.add(finding)
+        findings_created += 1
+        await websocket.send_text("    [i] Authenticated boundaries detected on sensitive routes.")
+
+    if has_auth_context and authenticated_access:
+        sample = authenticated_access[:6]
+        finding = models.Finding(
+            scan_id=scan_id,
+            link_id=None,
+            severity="info",
+            finding_type="AUTH_CONTEXT_VALIDATED_ACCESS",
+            description="Provided auth context reached protected routes successfully.",
+            cvss_score=None,
+            poc_payload="\n".join([f"AUTH GET {url} -> HTTP {code}" for url, code in sample])
+        )
+        db.add(finding)
+        findings_created += 1
+        await websocket.send_text("    [i] Authenticated context validated against sensitive endpoints.")
+
+    if findings_created:
+        db.commit()
+        vulns_found[0] += findings_created
+    else:
+        await websocket.send_text("    [i] Authenticated Scan module did not produce findings.")
+
+
+async def inspect_js_secrets(soup, current_url, link_id, scan_id, websocket, db, vulns_found):
+    await websocket.send_text("    [*] JS Secret Analysis: scanning inline and referenced scripts...")
+
+    findings = []
+
+    def collect_matches(content: str, origin: str):
+        for name, pattern in JS_SECRET_PATTERNS:
+            for match in re.findall(pattern, content):
+                token = match if isinstance(match, str) else str(match)
+                redacted = token[:6] + "..." + token[-4:] if len(token) > 14 else token
+                findings.append((name, origin, redacted))
+                if len(findings) >= 12:
+                    return
+
+    for script in soup.find_all("script"):
+        inline_js = script.text or ""
+        if inline_js.strip():
+            collect_matches(inline_js, f"inline:{current_url}")
+            if len(findings) >= 12:
+                break
+
+        script_src = script.get("src")
+        if not script_src or len(findings) >= 12:
+            continue
+
+        script_url = urljoin(current_url, script_src)
+        try:
+            res = await asyncio.to_thread(requests.get, script_url, timeout=4)
+            if res.status_code == 200 and "javascript" in (res.headers.get("Content-Type", "").lower() or ""):
+                collect_matches(res.text or "", script_url)
+        except Exception:
+            continue
+
+    if findings:
+        unique = []
+        seen = set()
+        for item in findings:
+            if item in seen:
+                continue
+            seen.add(item)
+            unique.append(item)
+
+        payload_lines = [f"{name} @ {origin} => {secret}" for name, origin, secret in unique[:10]]
+        finding = models.Finding(
+            scan_id=scan_id,
+            link_id=link_id,
+            severity="high",
+            finding_type="JS_SECRET_LEAK",
+            description="Potential secret/token material was detected in JavaScript sources.",
+            cvss_score="7.0",
+            poc_payload="\n".join(payload_lines)
+        )
+        db.add(finding)
+        db.commit()
+        vulns_found[0] += 1
+        await websocket.send_text(f"    [!] HIGH: JS Secret Analysis detected {len(unique)} potential secret artifact(s).")
+    else:
+        await websocket.send_text("    [i] JS Secret Analysis found no high-confidence secret patterns.")
+
+
 async def inspect_playwright_surface(soup, current_url, link_id, scan_id, websocket, db, vulns_found):
     script_endpoints = set()
     internal_refs = set()
@@ -465,7 +734,7 @@ async def inspect_playwright_surface(soup, current_url, link_id, scan_id, websoc
         await websocket.send_text(f"    [!] HIGH: Potential internal endpoint references were exposed in JS.")
 
 
-async def perform_crawl(target_url: str, modules: str, websocket: WebSocket, db: Session):
+async def perform_crawl(target_url: str, modules: str, websocket: WebSocket, db: Session, auth_context: dict | None = None):
     if not target_url.startswith("http"):
         target_url = "http://" + target_url
 
@@ -496,6 +765,12 @@ async def perform_crawl(target_url: str, modules: str, websocket: WebSocket, db:
 
     if "nuclei" in act_mod or "all" in act_mod:
         await run_nuclei_module(target_url, scan_record.id, websocket, db, vulns_found_ref)
+
+    if "api_security" in act_mod or "all" in act_mod:
+        await run_api_security_module(target_url, scan_record.id, websocket, db, vulns_found_ref)
+
+    if "auth_scan" in act_mod or "all" in act_mod:
+        await run_authenticated_scan_module(target_url, scan_record.id, websocket, db, vulns_found_ref, auth_context)
     
     visited = set()
     to_visit = [target_url]
@@ -554,6 +829,9 @@ async def perform_crawl(target_url: str, modules: str, websocket: WebSocket, db:
 
                 if "playwright" in act_mod or "all" in act_mod:
                     await inspect_playwright_surface(soup, current_url, db_link.id, scan_record.id, websocket, db, vulns_found_ref)
+
+                if "js_secret" in act_mod or "all" in act_mod:
+                    await inspect_js_secrets(soup, current_url, db_link.id, scan_record.id, websocket, db, vulns_found_ref)
 
                 for link in soup.find_all('a', href=True):
                     href = link.get('href')
