@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "xwa-sec-web": {
+    "samurai-web": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/xwa-sec-web",
+            "outputPath": "dist/samurai-web",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -63,10 +63,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "xwa-sec-web:build:production"
+              "buildTarget": "samurai-web:build:production"
             },
             "development": {
-              "buildTarget": "xwa-sec-web:build:development"
+              "buildTarget": "samurai-web:build:development"
             }
           },
           "defaultConfiguration": "development"

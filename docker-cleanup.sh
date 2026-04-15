@@ -2,7 +2,7 @@
 # docker-cleanup.sh
 # Script to stop the application and clean up all residual Docker assets.
 
-echo "Stopping XWA-SEC containers..."
+echo "Stopping Samurai containers..."
 docker compose down -v --remove-orphans
 
 echo "Cleaning up dangling images and unused networks..."

@@ -43,7 +43,7 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
     cookieHeader: ''
   };
 
-  private readonly authScanStorageKey = 'xwa-sec-auth-scan-config';
+  private readonly authScanStorageKey = 'samurai-auth-scan-config';
   
   activeModules: Record<string, boolean> = {
     tls: true,

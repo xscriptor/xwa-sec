@@ -3,7 +3,7 @@
 ## Our Pledge
 
 We are committed to providing a respectful, harassment-free experience for
-everyone who contributes to or uses XWA-SEC.
+everyone who contributes to or uses Samurai.
 
 ## Expected Behavior
 

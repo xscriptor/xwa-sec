@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from . import models, database, scanner, crawler
 
-app = FastAPI(title="XWA Sec API", description="Deep Cybersecurity Analysis API", version="2.5.0")
+app = FastAPI(title="Samurai API", description="Deep Cybersecurity Analysis API", version="2.5.0")
 
 @app.on_event("startup")
 def init_database():
@@ -20,7 +20,7 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "XWA Sec Engine Running with WebSockets enabled"}
+    return {"status": "ok", "message": "Samurai Engine Running with WebSockets enabled"}
 
 @app.websocket("/api/scan/live")
 async def websocket_scan(

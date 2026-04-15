@@ -19,7 +19,7 @@ NMAP_PROFILES = {
 
 EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 PHONE_PATTERN = re.compile(r"(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)\d{3,4}[\s.-]?\d{3,4}")
-REFLECT_PROBE = "xwa_probe_93f52"
+REFLECT_PROBE = "samurai_probe_93f52"
 
 ACTIVE_NMAP_PROCESSES: dict[int, asyncio.subprocess.Process] = {}
 

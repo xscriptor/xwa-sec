@@ -242,7 +242,7 @@ export class ScannerComponent implements OnInit, OnDestroy {
   exportScannerAsJson() {
     const payload = this.buildScannerExportPayload();
     this.downloadTextFile(
-      `xwa-sec-scanner-${payload.currentScanId ?? 'latest'}.json`,
+      `samurai-scanner-${payload.currentScanId ?? 'latest'}.json`,
       JSON.stringify(payload, null, 2),
       'application/json'
     );
@@ -258,7 +258,7 @@ export class ScannerComponent implements OnInit, OnDestroy {
     });
 
     this.downloadTextFile(
-      `xwa-sec-scanner-${this.currentScanId ?? 'latest'}.csv`,
+      `samurai-scanner-${this.currentScanId ?? 'latest'}.csv`,
       csvLines.join('\n'),
       'text/csv;charset=utf-8'
     );
@@ -270,7 +270,7 @@ export class ScannerComponent implements OnInit, OnDestroy {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
 
     doc.setFontSize(14);
-    doc.text('XWA-SEC Scanner Report', 40, 36);
+    doc.text('Samurai Scanner Report', 40, 36);
     doc.setFontSize(10);
     doc.text(`Target: ${payload.target}`, 40, 54);
     doc.text(`Profile: ${payload.profile} | Timeout: ${payload.timeout}s`, 40, 68);
@@ -295,7 +295,7 @@ export class ScannerComponent implements OnInit, OnDestroy {
       headStyles: { fillColor: [35, 35, 35] }
     });
 
-    doc.save(`xwa-sec-scanner-${this.currentScanId ?? 'latest'}.pdf`);
+    doc.save(`samurai-scanner-${this.currentScanId ?? 'latest'}.pdf`);
   }
 
   exportScannerAsBinary() {
@@ -305,7 +305,7 @@ export class ScannerComponent implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `xwa-sec-scanner-${this.currentScanId ?? 'latest'}.bin`;
+    anchor.download = `samurai-scanner-${this.currentScanId ?? 'latest'}.bin`;
     anchor.click();
     URL.revokeObjectURL(url);
   }

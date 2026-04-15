@@ -1,6 +1,6 @@
-<h1>XWA-SEC: UI Architecture & Folder Structure</h1>
+<h1>Samurai: UI Architecture & Folder Structure</h1>
 
-<p>To scale XWA-SEC into a comprehensive cybersecurity platform (capable of handling native link discovery, topological graphs, vulnerability counting, and automated injections), the Angular frontend must immediately migrate from a flat schema to a <strong>Feature-Driven Architecture</strong>. This guarantees infinite scalability, separation of concerns, and the ability to implement <em>lazy-loading</em> so as not to saturate the web browser under the <em>Nothing Design</em> scheme.</p>
+<p>To scale Samurai into a comprehensive cybersecurity platform (capable of handling native link discovery, topological graphs, vulnerability counting, and automated injections), the Angular frontend must immediately migrate from a flat schema to a <strong>Feature-Driven Architecture</strong>. This guarantees infinite scalability, separation of concerns, and the ability to implement <em>lazy-loading</em> so as not to saturate the web browser under the <em>Nothing Design</em> scheme.</p>
 
 <hr>
 
@@ -75,4 +75,4 @@
 <p>In deep security analysis where hundreds of URLs or endpoints are discovered per second, "prop-drilling" would destroy the application's rendering performance. To mitigate stagnant visualizations, the component tree must employ a <strong>Signal-based State Management</strong> strategy using native Angular 17 Signals. Child routes will subscribe to these <em>signals</em>, emitting precise reactivity (e.g., a rapidly incrementing port counter) without re-rendering the entire parent container (like a half-built topological graph).</p> 
 
 <hr>
-<p><i>Base architecture designed to structure the XWA-SEC cybersecurity project at an enterprise-grade level.</i></p>
+<p><i>Base architecture designed to structure the Samurai cybersecurity project at an enterprise-grade level.</i></p>

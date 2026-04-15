@@ -1,4 +1,4 @@
-<h1>XWA-SEC Application Manual</h1>
+<h1>Samurai Application Manual</h1>
 
 <p>This document details the necessary steps to run the application in a local development environment and provides the architectural configuration required for a production deployment.</p>
 
@@ -16,7 +16,7 @@
 
 <h3>1.2 Startup Instructions</h3>
 <ol>
-    <li>Open a terminal and navigate to the project root directory: <code>/xwa-sec</code></li>
+    <li>Open a terminal and navigate to the project root directory: <code>/samurai</code></li>
     <li>Execute the following command to build and launch all orchestrated containers in detached mode:</li>
 </ol>
 
@@ -47,7 +47,7 @@
 <ul>
     <li>Create a <code>Dockerfile.prod</code> inside the frontend directory implementing a multi-stage build.</li>
     <li>Stage 1: Build the Angular project using <code>npx @angular/cli build --configuration production</code>.</li>
-    <li>Stage 2: Copy the built files from <code>/dist/xwa-sec-web/browser</code> to the Nginx static serving directory <code>/usr/share/nginx/html</code>.</li>
+    <li>Stage 2: Copy the built files from <code>/dist/samurai-web/browser</code> to the Nginx static serving directory <code>/usr/share/nginx/html</code>.</li>
     <li>Update the <code>docker-compose.yml</code> frontend service to use <code>Dockerfile.prod</code> and expose port <code>80</code> (or <code>443</code> for HTTPS) instead of <code>4200</code>.</li>
     <li>Remove the local volumes from the frontend service in <code>docker-compose.yml</code>.</li>
 </ul>

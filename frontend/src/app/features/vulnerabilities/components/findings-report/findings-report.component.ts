@@ -139,7 +139,7 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
     const payload = this.buildExportPayload();
 
     this.downloadTextFile(
-      `xwa-sec-findings-scan-${this.completedScanDetails?.id ?? 'unknown'}.json`,
+      `samurai-findings-scan-${this.completedScanDetails?.id ?? 'unknown'}.json`,
       JSON.stringify(payload, null, 2),
       'application/json'
     );
@@ -152,7 +152,7 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
     doc.setFontSize(14);
-    doc.text(`XWA-SEC Vulnerability Report | Scan #${scanId}`, 40, 36);
+    doc.text(`Samurai Vulnerability Report | Scan #${scanId}`, 40, 36);
     doc.setFontSize(10);
     doc.text(`Target: ${target}`, 40, 54);
     doc.text(`Exported: ${new Date().toISOString()}`, 40, 68);
@@ -184,7 +184,7 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
       }
     });
 
-    doc.save(`xwa-sec-findings-scan-${scanId}.pdf`);
+    doc.save(`samurai-findings-scan-${scanId}.pdf`);
   }
 
   exportFindingsAsBinary() {
@@ -195,7 +195,7 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `xwa-sec-findings-scan-${this.completedScanDetails?.id ?? 'unknown'}.bin`;
+    anchor.download = `samurai-findings-scan-${this.completedScanDetails?.id ?? 'unknown'}.bin`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -223,7 +223,7 @@ export class VulnerabilitiesFindingsReportComponent implements OnInit, OnDestroy
     });
 
     this.downloadTextFile(
-      `xwa-sec-findings-scan-${this.completedScanDetails?.id ?? 'unknown'}.csv`,
+      `samurai-findings-scan-${this.completedScanDetails?.id ?? 'unknown'}.csv`,
       csvLines.join('\n'),
       'text/csv;charset=utf-8'
     );

@@ -2,11 +2,11 @@
 
 ## Supported Versions
 
-Security fixes are applied to the current mainline version of XWA-SEC.
+Security fixes are applied to the current mainline version of Samurai.
 
 ## Reporting a Vulnerability
 
-If you believe you found a security issue in XWA-SEC, please report it privately
+If you believe you found a security issue in Samurai, please report it privately
 to [x@xscriptor.com](mailto:x@xscriptor.com)
 
 Include, when possible:

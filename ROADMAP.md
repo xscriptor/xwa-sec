@@ -1,6 +1,6 @@
-# XWA-SEC Development Roadmap
+# Samurai Development Roadmap
 
-This document tracks the strategic steps required to evolve the XWA-SEC application into a full-scale web cybersecurity suite. 
+This document tracks the strategic steps required to evolve the Samurai application into a full-scale web cybersecurity suite. 
 This file is formatted to be synced automatically with GitHub Issues using the `xgh` roadmap standard.
 
 ## Infrastructure & Core Initialization <!-- phase:infrastructure -->

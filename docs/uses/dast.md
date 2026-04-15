@@ -1,6 +1,6 @@
 # Dynamic Application Security Testing (DAST) Engine
 
-This document details the capabilities and methodologies employed by the DAST Scanner module within the XWA-SEC platform. 
+This document details the capabilities and methodologies employed by the DAST Scanner module within the Samurai platform. 
 
 The DAST module represents an active, "black-box" testing approach. Unlike static analysis, which examines source code at rest, DAST interacts with the running web application from the outside, exactly as an attacker would. It probes the application's attack surface in real-time, executing non-destructive exploits and analyzing HTTP responses to identify security flaws.
 
