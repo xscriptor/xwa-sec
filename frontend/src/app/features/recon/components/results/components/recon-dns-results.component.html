@@ -1,0 +1,25 @@
+<div *ngIf="dns; else noDns" class="result-card">
+  <div class="card-header">
+    <span>DNS RECORDS</span>
+    <span class="card-meta">{{ entries().length }} TYPES</span>
+  </div>
+  <div class="card-content">
+    <div *ngFor="let item of entries()" class="record-block">
+      <div class="record-title">
+        <span>{{ item[0] }}</span>
+        <span class="record-count">{{ item[1].length }}</span>
+      </div>
+      <div *ngIf="item[1].length === 0" class="empty">no records</div>
+      <div class="record-list" *ngIf="item[1].length > 0">
+        <div *ngFor="let record of item[1]" class="record-item">{{ record }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #noDns>
+  <div class="result-card empty-card">
+    <div class="card-header">DNS RECORDS</div>
+    <div class="card-content empty-state">This scan did not return DNS data.</div>
+  </div>
+</ng-template>

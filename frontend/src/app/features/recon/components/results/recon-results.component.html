@@ -1,0 +1,127 @@
+<section *ngIf="results" class="results-container">
+  <header class="results-header">
+    <div>
+      <h3 class="t-label">[ RECON RESULTS ]</h3>
+      <p class="results-copy">Signal-first distribution: one primary metric, compact telemetry, and module outputs below.</p>
+    </div>
+    <div class="results-status" [class.empty]="!hasAnyResults()">
+      {{ hasAnyResults() ? 'ANALYZED' : 'NO SIGNALS' }}
+    </div>
+  </header>
+
+  <div class="overview-grid">
+    <article class="hero-panel dot-grid-subtle">
+      <span class="t-label">PRIMARY SIGNAL</span>
+      <div class="hero-value">
+        <span class="value">{{ availableSections() }}</span>
+        <span class="unit">/5</span>
+      </div>
+      <p class="hero-copy">modules produced actionable output</p>
+      <div class="hero-divider"></div>
+      <div class="hero-rows">
+        <div class="hero-row">
+          <span class="metric-label">SUBDOMAINS</span>
+          <span class="metric-value">{{ subdomainTotal() }}</span>
+        </div>
+        <div class="hero-row">
+          <span class="metric-label">API SIGNALS</span>
+          <span class="metric-value">{{ apiTotal() }}</span>
+        </div>
+        <div class="hero-row">
+          <span class="metric-label">TECH SIGNALS</span>
+          <span class="metric-value">{{ techSignalTotal() }}</span>
+        </div>
+      </div>
+    </article>
+
+    <section class="metrics-panel" aria-label="Recon telemetry">
+      <div class="metric-row">
+        <span class="metric-label">DNS RECORDS</span>
+        <span class="metric-value">{{ dnsTotal() }}</span>
+        <span class="metric-note">resolved entries</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">SUBDOMAINS DISCOVERED</span>
+        <span class="metric-value">{{ subdomainTotal() }}</span>
+        <span class="metric-note">{{ subdomainActiveTotal() }} active</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">API SIGNALS</span>
+        <span class="metric-value">{{ apiTotal() }}</span>
+        <span class="metric-note">{{ apiProbeTotal() }} paths probed</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">DOC PATHS</span>
+        <span class="metric-value">{{ documentationTotal() }}</span>
+        <span class="metric-note">spec and docs endpoints</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">SECURITY HEADERS</span>
+        <span class="metric-value">{{ headerPresentTotal() }}/{{ headerPresentTotal() + headerMissingTotal() }}</span>
+        <span class="metric-note">{{ headerMissingTotal() }} missing</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">TECH STACK</span>
+        <span class="metric-value">{{ techSignalTotal() }}</span>
+        <span class="metric-note">frontend, backend, cdn</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="module-stack">
+    <section class="module-section">
+      <div class="module-header">
+        <div>
+          <span class="module-name">DNS ENUMERATION</span>
+          <p>Resolved records grouped by type for ownership and infrastructure fingerprinting.</p>
+        </div>
+        <span class="module-badge">{{ dnsTotal() }} RECORDS</span>
+      </div>
+      <app-recon-dns-results [dns]="results.dns"></app-recon-dns-results>
+    </section>
+
+    <section class="module-section">
+      <div class="module-header">
+        <div>
+          <span class="module-name">SUBDOMAINS</span>
+          <p>Passive discovery plus active DNS validation for operationally reachable hosts.</p>
+        </div>
+        <span class="module-badge">{{ subdomainActiveTotal() }} ACTIVE</span>
+      </div>
+      <app-recon-subdomains-results [subdomains]="results.subdomains"></app-recon-subdomains-results>
+    </section>
+
+    <section class="module-section">
+      <div class="module-header">
+        <div>
+          <span class="module-name">API DISCOVERY</span>
+          <p>Endpoint probing, documentation discovery, and framework-level backend hints.</p>
+        </div>
+        <span class="module-badge">{{ apiTotal() }} SIGNALS</span>
+      </div>
+      <app-recon-api-results [apis]="results.apis"></app-recon-api-results>
+    </section>
+
+    <section class="module-section">
+      <div class="module-header">
+        <div>
+          <span class="module-name">SECURITY HEADERS</span>
+          <p>Missing controls are often more useful than present ones because they show hardening gaps.</p>
+        </div>
+        <span class="module-badge">{{ results.headers?.risk_level || 'N/A' }} RISK</span>
+      </div>
+      <app-recon-headers-results [headers]="results.headers"></app-recon-headers-results>
+    </section>
+
+    <section class="module-section">
+      <div class="module-header">
+        <div>
+          <span class="module-name">TECH STACK</span>
+          <p>Frontend/backend/CDN signals plus interesting HTML clues.</p>
+        </div>
+        <span class="module-badge">{{ techSignalTotal() }} SIGNALS</span>
+      </div>
+      <app-recon-tech-results [technology]="results.technology"></app-recon-tech-results>
+    </section>
+  </div>
+</section>

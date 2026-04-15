@@ -1,0 +1,29 @@
+.route-container {
+  padding: var(--space-lg);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.section-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.section-header h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-sm) 0;
+  letter-spacing: 2px;
+}
+
+.section-header .t-label {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
+
+.recon-export-zone {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}

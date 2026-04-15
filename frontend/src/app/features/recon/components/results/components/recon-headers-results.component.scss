@@ -1,0 +1,98 @@
+.result-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border-visible);
+  border-radius: 4px;
+  margin-bottom: var(--space-lg);
+}
+
+.card-header {
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.card-content {
+  padding: var(--space-lg);
+}
+
+.header-summary {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.summary-pill {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.header-item {
+  background-color: var(--background);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
+  border-left: 3px solid transparent;
+  font-family: 'Space Mono', monospace;
+}
+
+.header-item.present {
+  border-left-color: var(--success);
+}
+
+.header-item.missing {
+  border-left-color: var(--error);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.value {
+  color: var(--text-tertiary);
+  word-break: break-all;
+}
+
+.description {
+  color: var(--text-tertiary);
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+}
+
+.recommendations {
+  margin-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-md);
+}
+
+.recommendations-title {
+  color: var(--text-tertiary);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  margin-bottom: var(--space-sm);
+}
+
+.recommendation-item {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.5);
+}
+
+.empty-state {
+  color: var(--text-tertiary);
+}
+
+.risk-low {
+  color: var(--success);
+}
+
+.risk-medium {
+  color: var(--warning);
+}
+
+.risk-high {
+  color: var(--error);
+}

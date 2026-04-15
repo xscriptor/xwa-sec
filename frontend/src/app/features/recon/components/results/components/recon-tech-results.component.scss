@@ -1,0 +1,48 @@
+.result-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border-visible);
+  border-radius: 4px;
+  margin-bottom: var(--space-lg);
+}
+
+.card-header {
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-md) var(--space-lg);
+  font-weight: 600;
+}
+
+.card-content {
+  padding: var(--space-lg);
+}
+
+.group {
+  margin-bottom: var(--space-md);
+}
+
+.label {
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  margin-bottom: var(--space-sm);
+}
+
+.badge {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-right: var(--space-sm);
+  font-family: 'Space Mono', monospace;
+}
+
+.finding {
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--background);
+  border-left: 3px solid var(--accent);
+  margin-bottom: var(--space-sm);
+  font-family: 'Space Mono', monospace;
+}
+
+.empty-state {
+  color: var(--text-tertiary);
+}

@@ -1,0 +1,34 @@
+<div class="route-container">
+  <header class="section-header">
+    <div>
+      <h2 class="t-heading">WEB_RECONNAISSANCE</h2>
+      <span class="t-label">PASSIVE INTELLIGENCE GATHERING AND ENDPOINT MAPPING</span>
+    </div>
+  </header>
+
+  <app-recon-controls
+    [targetDomain]="targetDomain"
+    [isScanning]="isScanning"
+    [selectedModules]="selectedModules"
+    [reconModules]="reconModules"
+    (targetDomainChange)="updateTargetDomain($event)"
+    (toggleModule)="toggleModule($event)"
+    (preset)="selectPreset($event)"
+    (start)="startRecon()"
+    (clear)="clearTerminal()"
+  ></app-recon-controls>
+
+  <app-recon-terminal [lines]="terminalLines" [isScanning]="isScanning"></app-recon-terminal>
+
+  <app-recon-results [results]="reconResults"></app-recon-results>
+
+  <section class="recon-export-zone" *ngIf="reconResults">
+    <app-recon-export-actions
+      [hasExports]="!!reconResults"
+      (exportCsv)="exportReconAsCsv()"
+      (exportJson)="exportReconAsJson()"
+      (exportPdf)="exportReconAsPdf()"
+      (exportBinary)="exportReconAsBinary()"
+    ></app-recon-export-actions>
+  </section>
+</div>
