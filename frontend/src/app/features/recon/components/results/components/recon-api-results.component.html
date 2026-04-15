@@ -1,0 +1,58 @@
+<div *ngIf="apis; else noApis" class="result-card">
+  <div class="card-header">
+    <span class="t-label">API SIGNALS</span>
+    <span class="card-meta">{{ apis.apis_found.length }} SIGNALS / {{ apis.probed_paths || 0 }} PROBED</span>
+  </div>
+  <div class="card-content">
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">BASE URL</span>
+        <span class="meta-value">{{ apis.base_url || 'unreachable' }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">FRAMEWORK</span>
+        <span class="meta-value">{{ apis.framework || 'unknown' }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">GRAPHQL</span>
+        <span class="meta-value">{{ apis.graphql_enabled ? 'detected' : 'no signal' }}</span>
+      </div>
+    </div>
+
+    <div *ngIf="apis.documentation.length" class="docs-strip">
+      <span class="meta-label">DOC PATHS</span>
+      <span class="meta-value">{{ apis.documentation.join(', ') }}</span>
+    </div>
+
+    <div class="endpoint-table" *ngIf="apis.apis_found.length > 0; else noEndpoints">
+      <div class="endpoint-head">
+        <span>PATH</span>
+        <span>STATUS</span>
+        <span>CONTENT TYPE</span>
+      </div>
+      <div *ngFor="let api of apis.apis_found" class="endpoint-row">
+        <span class="endpoint-path">{{ api.path }}</span>
+        <span class="endpoint-status" [class.ok]="statusTone(api.status) === 'ok'" [class.restricted]="statusTone(api.status) === 'restricted'" [class.redirect]="statusTone(api.status) === 'redirect'">{{ api.status }}</span>
+        <span class="endpoint-type">{{ api.content_type || 'unknown' }}</span>
+      </div>
+    </div>
+
+    <ng-template #noEndpoints>
+      <div class="empty-state">No endpoint signals matched the current probe set.</div>
+    </ng-template>
+
+    <div *ngIf="apis.headers_analysis" class="analysis-grid">
+      <div *ngFor="let item of apis.headers_analysis | keyvalue" class="analysis-item">
+        <span class="analysis-key">{{ item.key }}</span>
+        <span class="analysis-value">{{ item.value }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #noApis>
+  <div class="result-card empty-card">
+    <div class="card-header">API ENDPOINTS</div>
+    <div class="card-content empty-state">This scan did not return API discovery data.</div>
+  </div>
+</ng-template>

@@ -1,0 +1,31 @@
+<div *ngIf="technology; else noTech" class="result-card">
+  <div class="card-header">TECHNOLOGY STACK</div>
+  <div class="card-content">
+    <div class="group" *ngIf="technology.backend.length > 0">
+      <div class="label">backend</div>
+      <span *ngFor="let item of technology.backend" class="badge">{{ item }}</span>
+    </div>
+    <div class="group" *ngIf="technology.frontend.length > 0">
+      <div class="label">frontend</div>
+      <span *ngFor="let item of technology.frontend" class="badge">{{ item }}</span>
+    </div>
+    <div class="group" *ngIf="technology.cdn">
+      <div class="label">cdn</div>
+      <span class="badge">{{ technology.cdn }}</span>
+    </div>
+    <div *ngIf="technology.interesting_findings.length > 0" class="group">
+      <div class="label">interesting findings</div>
+      <div *ngFor="let item of technology.interesting_findings" class="finding">{{ item }}</div>
+    </div>
+    <div *ngIf="technology.frontend.length === 0 && technology.backend.length === 0 && !technology.cdn && technology.interesting_findings.length === 0" class="empty-state">
+      No technology signals were collected.
+    </div>
+  </div>
+</div>
+
+<ng-template #noTech>
+  <div class="result-card empty-card">
+    <div class="card-header">TECHNOLOGY STACK</div>
+    <div class="card-content empty-state">This scan did not return technology fingerprinting data.</div>
+  </div>
+</ng-template>

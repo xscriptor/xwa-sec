@@ -35,7 +35,7 @@ class Finding(Base):
     severity = Column(String) # low, medium, high, info, critical
     finding_type = Column(String)
     description = Column(String)
-    poc_payload = Column(String, nullable=True)
+    poc_payload = Column(String, nullable=True)  # Changed to unlimited text
     cvss_score = Column(String, nullable=True)
     
     scan = relationship("Scan", back_populates="findings")

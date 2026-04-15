@@ -1,0 +1,29 @@
+# VCS
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+dist/
+.angular/
+
+# Local runtime artifacts
+*.log
+*.tmp
+*.swp
+.DS_Store
+coverage/
+
+# Scanner/recon output artifacts
+reports/
+outputs/
+artifacts/

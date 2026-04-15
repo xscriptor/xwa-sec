@@ -1,0 +1,35 @@
+<div *ngIf="headers; else noHeaders" class="result-card">
+  <div class="card-header">
+    <span>SECURITY HEADERS</span>
+    <span [class]="'risk risk-' + headers.risk_level.toLowerCase()">{{ headers.risk_level }} RISK</span>
+  </div>
+  <div class="card-content">
+    <div class="header-summary">
+      <div class="summary-pill present">{{ entries().length }} present</div>
+      <div class="summary-pill missing">{{ headers.missing.length }} missing</div>
+    </div>
+
+    <div *ngFor="let header of entries()" class="header-item present">
+      <div class="name">{{ header[0] }}</div>
+      <div class="value">{{ header[1].value }}</div>
+      <div class="description">{{ header[1].description }}</div>
+    </div>
+    <div *ngFor="let missingHeader of headers.missing" class="header-item missing">
+      <div class="name">{{ missingHeader }}</div>
+      <div class="value">missing</div>
+      <div class="description">hardening opportunity</div>
+    </div>
+
+    <div *ngIf="headers.recommendations?.length" class="recommendations">
+      <div class="recommendations-title">recommendations</div>
+      <div *ngFor="let recommendation of headers.recommendations" class="recommendation-item">{{ recommendation }}</div>
+    </div>
+  </div>
+</div>
+
+<ng-template #noHeaders>
+  <div class="result-card empty-card">
+    <div class="card-header">SECURITY HEADERS</div>
+    <div class="card-content empty-state">This scan did not return header analysis data.</div>
+  </div>
+</ng-template>

@@ -34,8 +34,25 @@ __pycache__/
 env/
 venv/
 .venv/
+.envrc
+.direnv/
+ENV/
+env.bak/
+venv.bak/
+**/.venv/
+**/venv/
+**/env/
 pip-log.txt
 pip-delete-this-directory.txt
+
+# Runtime/security-sensitive outputs
+reports/
+outputs/
+artifacts/
+captures/
+*.har
+*.pcap
+*.sqlite3
 
 # =============================
 # OS generated files

@@ -1,0 +1,62 @@
+.result-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border-visible);
+  border-radius: 4px;
+  margin-bottom: var(--space-lg);
+}
+
+.card-header {
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-md) var(--space-lg);
+  font-weight: 600;
+}
+
+.card-content {
+  padding: var(--space-lg);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.card-meta,
+.record-count {
+  color: var(--text-tertiary);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.record-block {
+  margin-bottom: var(--space-md);
+}
+
+.record-title {
+  margin-bottom: var(--space-sm);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.record-item {
+  background-color: var(--background);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  font-family: 'Space Mono', monospace;
+}
+
+.record-list {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.empty {
+  color: var(--text-tertiary);
+}
+
+.empty-state {
+  color: var(--text-tertiary);
+}

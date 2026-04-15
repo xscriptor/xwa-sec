@@ -1,0 +1,100 @@
+.recon-panel {
+  background-color: var(--surface);
+  border: 1px solid var(--border-visible);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  border-radius: 4px;
+}
+
+.control-group {
+  margin-bottom: var(--space-lg);
+}
+
+.control-group label {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.input-field {
+  width: 100%;
+  padding: var(--space-md);
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: 'Space Mono', monospace;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-md);
+}
+
+.module-btn {
+  padding: var(--space-md);
+  background-color: var(--background);
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+  font-family: 'Space Mono', monospace;
+}
+
+.module-btn.selected {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--background);
+}
+
+.quick-select {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
+}
+
+.preset-btn {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+}
+
+.action-group {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.btn {
+  padding: var(--space-md) var(--space-lg);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background-color: var(--accent);
+  color: var(--background);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border-color: var(--border-visible);
+  color: var(--text-primary);
+}

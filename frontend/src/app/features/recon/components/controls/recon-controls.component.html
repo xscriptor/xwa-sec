@@ -1,0 +1,45 @@
+<div class="recon-panel">
+  <div class="control-group">
+    <label class="t-label">TARGET DOMAIN</label>
+    <input
+      type="text"
+      [ngModel]="targetDomain"
+      (ngModelChange)="onInput($event)"
+      (keyup.enter)="start.emit()"
+      placeholder="example.com or https://example.com"
+      class="input-field"
+      [disabled]="isScanning"
+    />
+  </div>
+
+  <div class="control-group">
+    <label class="t-label">RECON MODULES</label>
+    <div class="modules-grid">
+      <button
+        *ngFor="let module of reconModules"
+        (click)="toggleModule.emit(module.id)"
+        [class.selected]="selectedModules.includes(module.id)"
+        [disabled]="isScanning"
+        class="module-btn"
+        [title]="module.description"
+      >
+        <span class="module-icon">{{ module.icon }}</span>
+        <span class="module-name">{{ module.label }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="quick-select">
+    <span class="t-label">QUICK PRESETS:</span>
+    <button (click)="preset.emit('all')" [disabled]="isScanning" class="preset-btn">All Modules</button>
+    <button (click)="preset.emit('basic')" [disabled]="isScanning" class="preset-btn">Basic (DNS + Headers)</button>
+    <button (click)="preset.emit('api')" [disabled]="isScanning" class="preset-btn">API Focus</button>
+  </div>
+
+  <div class="action-group">
+    <button (click)="start.emit()" [disabled]="!targetDomain || isScanning" class="btn btn-primary">
+      {{ isScanning ? 'SCANNING...' : 'START RECONNAISSANCE' }}
+    </button>
+    <button (click)="clear.emit()" [disabled]="isScanning" class="btn btn-secondary">CLEAR TERMINAL</button>
+  </div>
+</div>
