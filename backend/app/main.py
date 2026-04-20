@@ -13,6 +13,7 @@ from . import models, database, scanner, crawler
 from .recon import perform_web_recon
 from .auth.router import router as auth_router
 from .auth.users_router import router as users_router
+from .schedules.router import router as schedules_router
 from .auth.deps import get_current_user, require_roles, get_current_user_ws
 from .validators import validate_host_target, validate_url_target, InvalidTargetError
 from .rate_limit import limiter
@@ -42,6 +43,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(schedules_router)
 
 
 @app.get("/")
