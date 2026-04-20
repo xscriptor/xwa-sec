@@ -3,6 +3,16 @@
 All notable changes to Samurai are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions use semantic versioning.
 
+## [2.6.0-beta.1] — 2026-04-20
+
+Promoted from `alpha.1` after end-to-end validation of the Celery runner pipeline.
+No functional changes since alpha — this tag marks the freeze point for wider
+testing. All entries from the alpha section below still apply.
+
+### Fixed since alpha.1
+- `/api/auth/me` crashed with `ResponseValidationError` when the stored email used a reserved TLD (`.local`). `UserRead.email` relaxed to `str`; `UserCreate`/`UserUpdate` keep strict `EmailStr` validation on input.
+- `bcrypt>=4.1` incompatibility with `passlib==1.7.4` pinned to `bcrypt==4.0.1`.
+
 ## [2.6.0-alpha.1] — 2026-04-20
 
 Major hardening + automation release. Introduces authentication, RBAC, rate
