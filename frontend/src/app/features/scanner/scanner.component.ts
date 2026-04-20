@@ -1,8 +1,9 @@
 import { Component, OnDestroy, ChangeDetectorRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { ScansApiService } from '../../core/api/scans-api.service';
+import { ScanLiveService } from '../../core/api/scan-live.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { gzip } from 'pako';
@@ -129,7 +130,12 @@ export class ScannerComponent implements OnInit, OnDestroy {
   private openPortsSet = new Set<string>();
   private readonly maxTerminalLines = 1200;
 
-  constructor(private cdr: ChangeDetectorRef, private http: HttpClient, private route: ActivatedRoute) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private scansApi: ScansApiService,
+    private scanLive: ScanLiveService,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit() {
     this.loadScannerHistory();
@@ -162,16 +168,15 @@ export class ScannerComponent implements OnInit, OnDestroy {
     this.openPortsDetailed = [];
     this.cdr.detectChanges();
 
-    const wsParams = new URLSearchParams({
+    const wsUrl = this.scanLive.buildUrl({
       target: this.targetDomain,
       profile: this.scanProfile,
-      timeout: String(this.scanTimeout),
-      web_scan: String(this.webAppSurfaceScan),
-      collect_contacts: String(this.collectContactIntel),
-      scan_unsanitized: String(this.detectUnsanitizedInputs),
-      max_pages: String(this.webMaxPages)
+      timeout: this.scanTimeout,
+      web_scan: this.webAppSurfaceScan,
+      collect_contacts: this.collectContactIntel,
+      scan_unsanitized: this.detectUnsanitizedInputs,
+      max_pages: this.webMaxPages
     });
-    const wsUrl = `ws://${window.location.hostname}:8000/api/scan/live?${wsParams.toString()}`;
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onmessage = (event) => {
@@ -221,7 +226,7 @@ export class ScannerComponent implements OnInit, OnDestroy {
   cancelScan() {
     if (!this.currentScanId || !this.isScanning) return;
 
-    this.http.post(`http://${window.location.hostname}:8000/api/scan/cancel/${this.currentScanId}`, {}).subscribe({
+    this.scansApi.cancel(this.currentScanId).subscribe({
       next: () => {
         this.terminalLogs.push(`[!] Cancellation requested for scan #${this.currentScanId}`);
         this.cdr.detectChanges();
@@ -352,7 +357,7 @@ export class ScannerComponent implements OnInit, OnDestroy {
   }
 
   private loadCurrentScanDetail(scanId: number) {
-    this.http.get<ScanDetailItem>(`http://${window.location.hostname}:8000/api/scans/${scanId}`).subscribe({
+    this.scansApi.get<ScanDetailItem>(scanId).subscribe({
       next: (detail) => {
         this.currentScanDetail = detail;
         this.currentScanId = detail.id;
@@ -414,9 +419,9 @@ export class ScannerComponent implements OnInit, OnDestroy {
   }
 
   private loadScannerHistory() {
-    this.http.get<ScanListItem[]>(`http://${window.location.hostname}:8000/api/scans`).subscribe({
+    this.scansApi.list().subscribe({
       next: (scans) => {
-        const scannerRuns = (scans || []).filter((s) => (s.scan_type || '').startsWith('port_scan')).slice(0, 6);
+        const scannerRuns = ((scans as ScanListItem[]) || []).filter((s) => (s.scan_type || '').startsWith('port_scan')).slice(0, 6);
         if (!scannerRuns.length) {
           this.scannerHistory = [];
           this.latestOpenPortDelta = null;
@@ -424,7 +429,7 @@ export class ScannerComponent implements OnInit, OnDestroy {
           return;
         }
 
-        const requests = scannerRuns.map((s) => this.http.get<ScanDetailItem>(`http://${window.location.hostname}:8000/api/scans/${s.id}`));
+        const requests = scannerRuns.map((s) => this.scansApi.get<ScanDetailItem>(s.id));
         forkJoin(requests).subscribe({
           next: (details) => {
             this.scannerHistory = details.map((detail) => {

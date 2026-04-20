@@ -14,3 +14,11 @@ aiohttp==3.9.1
 cryptography==42.0.2
 python-whois==0.9.5
 certifi==2024.2.2
+passlib==1.7.4
+bcrypt==4.0.1
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.6
+alembic==1.13.1
+email-validator==2.1.0
+slowapi==0.1.9
+limits[redis]==3.10.1

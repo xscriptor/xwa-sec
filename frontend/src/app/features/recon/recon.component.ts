@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
+import { ScansApiService } from '../../core/api/scans-api.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { gzip } from 'pako';
@@ -103,7 +103,7 @@ export class ReconComponent implements OnInit, OnDestroy {
   constructor(
     private reconLiveService: ReconLiveService,
     private cdr: ChangeDetectorRef,
-    private http: HttpClient,
+    private scansApi: ScansApiService,
     private route: ActivatedRoute
   ) {}
 
@@ -257,7 +257,7 @@ export class ReconComponent implements OnInit, OnDestroy {
     this.isScanning = false;
     this.activeResultsView = 'all';
 
-    this.http.get<ReconHistoryScanDetail>(`http://${window.location.hostname}:8000/api/scans/${scanId}`).subscribe({
+    this.scansApi.get<ReconHistoryScanDetail>(scanId).subscribe({
       next: (detail) => {
         this.targetDomain = detail.domain_target || this.targetDomain;
 

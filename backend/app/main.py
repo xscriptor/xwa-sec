@@ -1,28 +1,53 @@
-from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, HTTPException
+import os
+import json
+from typing import Optional
+
+from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
-import json
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi import _rate_limit_exceeded_handler
+
 from . import models, database, scanner, crawler
 from .recon import perform_web_recon
+from .auth.router import router as auth_router
+from .auth.users_router import router as users_router
+from .auth.deps import get_current_user, require_roles, get_current_user_ws
+from .validators import validate_host_target, validate_url_target, InvalidTargetError
+from .rate_limit import limiter
 
-app = FastAPI(title="Samurai API", description="Deep Cybersecurity Analysis API", version="2.5.0")
+app = FastAPI(title="Samurai API", description="Deep Cybersecurity Analysis API", version="2.6.0")
+
+_cors_origins_env = os.getenv("FRONTEND_ORIGIN", "http://localhost:4200")
+ALLOWED_ORIGINS = [origin.strip() for origin in _cors_origins_env.split(",") if origin.strip()]
+
 
 @app.on_event("startup")
 def init_database():
     database.wait_for_db()
-    models.Base.metadata.create_all(bind=database.engine)
+
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+app.include_router(users_router)
+
+
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Samurai Engine Running with WebSockets enabled"}
+
 
 @app.websocket("/api/scan/live")
 async def websocket_scan(
@@ -34,9 +59,22 @@ async def websocket_scan(
     collect_contacts: bool = False,
     scan_unsanitized: bool = False,
     max_pages: int = 10,
-    db: Session = Depends(database.get_db)
+    token: Optional[str] = Query(default=None),
+    db: Session = Depends(database.get_db),
 ):
     await websocket.accept()
+    user = await get_current_user_ws(websocket, token, db)
+    if user is None:
+        return
+    if user.role not in ("admin", "operator"):
+        await websocket.close(code=1008, reason="Insufficient role")
+        return
+    try:
+        target = validate_host_target(target)
+    except InvalidTargetError as exc:
+        await websocket.send_text(f"[!] {exc.detail}")
+        await websocket.close(code=1008, reason="Invalid target")
+        return
     try:
         await scanner.perform_nmap_scan(
             target,
@@ -55,6 +93,7 @@ async def websocket_scan(
         await websocket.send_text(f"[!] CRITICAL ERROR: {str(e)}")
         await websocket.close()
 
+
 @app.websocket("/api/vuln/live")
 async def websocket_vuln_crawler(
     websocket: WebSocket,
@@ -65,9 +104,22 @@ async def websocket_vuln_crawler(
     auth_user: str = "",
     auth_pass: str = "",
     auth_cookie: str = "",
-    db: Session = Depends(database.get_db)
+    token: Optional[str] = Query(default=None),
+    db: Session = Depends(database.get_db),
 ):
     await websocket.accept()
+    user = await get_current_user_ws(websocket, token, db)
+    if user is None:
+        return
+    if user.role not in ("admin", "operator"):
+        await websocket.close(code=1008, reason="Insufficient role")
+        return
+    try:
+        target = validate_url_target(target)
+    except InvalidTargetError as exc:
+        await websocket.send_text(f"[!] {exc.detail}")
+        await websocket.close(code=1008, reason="Invalid target")
+        return
     try:
         auth_context = {
             "mode": auth_mode,
@@ -83,25 +135,40 @@ async def websocket_vuln_crawler(
         await websocket.send_text(f"[!] CRITICAL ERROR: {str(e)}")
         await websocket.close()
 
+
 @app.websocket("/api/recon/live")
 async def websocket_recon(
     websocket: WebSocket,
     target: str,
     recon_types: str = "all",
     timeout: int = 300,
-    db: Session = Depends(database.get_db)
+    token: Optional[str] = Query(default=None),
+    db: Session = Depends(database.get_db),
 ):
     await websocket.accept()
+    user = await get_current_user_ws(websocket, token, db)
+    if user is None:
+        return
+    if user.role not in ("admin", "operator"):
+        await websocket.close(code=1008, reason="Insufficient role")
+        return
+
+    try:
+        target = validate_host_target(target)
+    except InvalidTargetError as exc:
+        await websocket.send_text(f"[LOG] [error] {exc.detail}")
+        await websocket.close(code=1008, reason="Invalid target")
+        return
+
     scan_record = None
 
     try:
         await websocket.send_text("[LOG] [init] recon session established")
 
-        # Create scan record in database
         scan_record = models.Scan(
             domain_target=target,
             status="RUNNING",
-            scan_type="web_recon"
+            scan_type="web_recon",
         )
         db.add(scan_record)
         db.commit()
@@ -114,10 +181,9 @@ async def websocket_recon(
             target,
             recon_list,
             websocket,
-            timeout_seconds=timeout
+            timeout_seconds=timeout,
         )
-        
-        # Save results as findings
+
         if results:
             results_json = json.dumps(results, indent=2)
             finding = models.Finding(
@@ -128,8 +194,7 @@ async def websocket_recon(
                 poc_payload=results_json,
             )
             db.add(finding)
-        
-        # Mark as completed
+
         scan_record.status = "COMPLETED"
         db.commit()
         await websocket.send_text("[done] scan completed and saved to history")
@@ -152,26 +217,43 @@ async def websocket_recon(
             pass
 
 
-# --- CRUD PARA HISTORIAL DE ANALISIS ---
+# --- CRUD para historial de analisis (protegido) ---
 
 @app.get("/api/scans")
-def list_scans(db: Session = Depends(database.get_db)):
+def list_scans(
+    db: Session = Depends(database.get_db),
+    _user: models.User = Depends(get_current_user),
+):
     scans = db.query(models.Scan).order_by(models.Scan.id.desc()).all()
     return scans
 
+
 @app.get("/api/scans/{scan_id}")
-def get_scan_details(scan_id: int, db: Session = Depends(database.get_db)):
-    scan = db.query(models.Scan)\
-             .options(joinedload(models.Scan.findings),\
-                      joinedload(models.Scan.discovered_links).joinedload(models.DiscoveredLink.findings))\
-             .filter(models.Scan.id == scan_id)\
-             .first()
+def get_scan_details(
+    scan_id: int,
+    db: Session = Depends(database.get_db),
+    _user: models.User = Depends(get_current_user),
+):
+    scan = (
+        db.query(models.Scan)
+        .options(
+            joinedload(models.Scan.findings),
+            joinedload(models.Scan.discovered_links).joinedload(models.DiscoveredLink.findings),
+        )
+        .filter(models.Scan.id == scan_id)
+        .first()
+    )
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
     return scan
 
+
 @app.delete("/api/scans/{scan_id}")
-def delete_scan(scan_id: int, db: Session = Depends(database.get_db)):
+def delete_scan(
+    scan_id: int,
+    db: Session = Depends(database.get_db),
+    _user: models.User = Depends(require_roles("admin", "operator")),
+):
     scan = db.query(models.Scan).filter(models.Scan.id == scan_id).first()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
@@ -181,7 +263,11 @@ def delete_scan(scan_id: int, db: Session = Depends(database.get_db)):
 
 
 @app.post("/api/scan/cancel/{scan_id}")
-def cancel_scan(scan_id: int, db: Session = Depends(database.get_db)):
+def cancel_scan(
+    scan_id: int,
+    db: Session = Depends(database.get_db),
+    _user: models.User = Depends(require_roles("admin", "operator")),
+):
     cancelled = scanner.request_cancel_scan(scan_id, db)
     if not cancelled:
         raise HTTPException(status_code=404, detail="Running scan not found")

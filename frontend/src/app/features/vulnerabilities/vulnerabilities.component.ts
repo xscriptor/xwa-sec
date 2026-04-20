@@ -1,8 +1,9 @@
 import { Component, OnDestroy, ChangeDetectorRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
+import { ScansApiService } from '../../core/api/scans-api.service';
+import { VulnLiveService } from '../../core/api/vuln-live.service';
 import {
   VulnerabilitiesAnalysisSummaryComponent
 } from './components/analysis-summary/analysis-summary.component';
@@ -81,7 +82,12 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
   completedScanDetails: ScanDetail | null = null;
   trendSnapshots: TrendSnapshot[] = [];
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private route: ActivatedRoute) {}
+  constructor(
+    private scansApi: ScansApiService,
+    private vulnLive: VulnLiveService,
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit() {
     this.loadAuthScanConfigFromStorage();
@@ -115,26 +121,11 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
       ? 'all'
       : (Object.entries(this.activeModules).filter(([, v]) => v).map(([k]) => k).join(',') || 'all');
 
-    const wsParams = new URLSearchParams({
+    const wsUrl = this.vulnLive.buildUrl({
       target: this.targetUrl,
-      modules: activeKeys
+      modules: activeKeys,
+      auth: this.authScanConfig
     });
-
-    if (this.authScanConfig.bearerToken.trim()) {
-      wsParams.set('auth_bearer', this.authScanConfig.bearerToken.trim());
-    }
-    if (this.authScanConfig.basicUser.trim()) {
-      wsParams.set('auth_user', this.authScanConfig.basicUser.trim());
-    }
-    if (this.authScanConfig.basicPass.trim()) {
-      wsParams.set('auth_pass', this.authScanConfig.basicPass);
-    }
-    if (this.authScanConfig.cookieHeader.trim()) {
-      wsParams.set('auth_cookie', this.authScanConfig.cookieHeader.trim());
-    }
-    wsParams.set('auth_mode', this.authScanConfig.authMode);
-
-    const wsUrl = `ws://${window.location.hostname}:8000/api/vuln/live?${wsParams.toString()}`;
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onmessage = (event) => {
@@ -203,31 +194,30 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
   }
 
   fetchLatestScan() {
-    // Buscamos el último escaneo en el sistema para renderizar el árbol inmediatamente
-    this.http.get<ScanListItem[]>(`http://${window.location.hostname}:8000/api/scans`).subscribe({
+    this.scansApi.list().subscribe({
       next: (scans) => {
-        if (scans && scans.length > 0) {
-            this.fetchTrendFromRecentScans(scans);
-            // Fetch detallado del último
-              this.http.get<ScanDetail>(`http://${window.location.hostname}:8000/api/scans/${scans[0].id}`).subscribe({
-                next: (detail) => {
-                    this.completedScanDetails = detail;
-                    this.cdr.detectChanges();
-                }
-            });
+        const list = scans as ScanListItem[];
+        if (list && list.length > 0) {
+          this.fetchTrendFromRecentScans(list);
+          this.scansApi.get<ScanDetail>(list[0].id).subscribe({
+            next: (detail) => {
+              this.completedScanDetails = detail;
+              this.cdr.detectChanges();
+            }
+          });
         }
       }
     });
   }
 
   private loadScanById(scanId: number) {
-    this.http.get<ScanListItem[]>(`http://${window.location.hostname}:8000/api/scans`).subscribe({
+    this.scansApi.list().subscribe({
       next: (scans) => {
-        this.fetchTrendFromRecentScans(scans || []);
+        this.fetchTrendFromRecentScans((scans as ScanListItem[]) || []);
       }
     });
 
-    this.http.get<ScanDetail>(`http://${window.location.hostname}:8000/api/scans/${scanId}`).subscribe({
+    this.scansApi.get<ScanDetail>(scanId).subscribe({
       next: (detail) => {
         this.completedScanDetails = detail;
         this.targetUrl = detail.domain_target || this.targetUrl;
@@ -287,9 +277,7 @@ export class VulnerabilitiesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const requests = recent.map((scan) =>
-      this.http.get<ScanDetail>(`http://${window.location.hostname}:8000/api/scans/${scan.id}`)
-    );
+    const requests = recent.map((scan) => this.scansApi.get<ScanDetail>(scan.id));
 
     forkJoin(requests).subscribe({
       next: (details) => {

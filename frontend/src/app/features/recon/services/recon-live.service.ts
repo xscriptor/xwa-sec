@@ -1,5 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ReconEnvelope, ReconModuleId } from '../models/recon.models';
+import { ApiConfigService } from '../../../core/api/api-config.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 interface ReconStreamHandlers {
   onLog: (line: string) => void;
@@ -10,6 +12,8 @@ interface ReconStreamHandlers {
 
 @Injectable({ providedIn: 'root' })
 export class ReconLiveService {
+  private readonly apiConfig = inject(ApiConfigService);
+  private readonly auth = inject(AuthService);
   private ws: WebSocket | null = null;
   private inactivityTimer: number | null = null;
   private readonly inactivityTimeoutMs = 45000;
@@ -30,11 +34,7 @@ export class ReconLiveService {
   }
 
   private buildReconWsUrls(query: URLSearchParams): string[] {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const directBackend = `${wsProtocol}//${window.location.hostname}:8000/api/recon/live?${query.toString()}`;
-    const sameOriginProxy = `${wsProtocol}//${window.location.host}/api/recon/live?${query.toString()}`;
-
-    return Array.from(new Set([directBackend, sameOriginProxy]));
+    return this.apiConfig.wsFallbackChain('/api/recon/live', query);
   }
 
   private openSocket(wsUrls: string[], index: number, handlers: ReconStreamHandlers): void {
@@ -123,6 +123,9 @@ export class ReconLiveService {
       recon_types: reconTypes,
       timeout: '300'
     });
+
+    const token = this.auth.getToken();
+    if (token) query.set('token', token);
 
     const wsUrls = this.buildReconWsUrls(query);
     this.openSocket(wsUrls, 0, handlers);

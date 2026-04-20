@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { ScansApiService } from '../../core/api/scans-api.service';
 
 interface ScanItem {
   id: number;
@@ -25,7 +25,7 @@ export class HistoryComponent implements OnInit {
   selectedScan: ScanItem | null = null;
   isLoading = true;
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private router: Router) {}
+  constructor(private scansApi: ScansApiService, private cdr: ChangeDetectorRef, private router: Router) {}
 
   ngOnInit() {
     this.fetchHistory();
@@ -33,9 +33,9 @@ export class HistoryComponent implements OnInit {
 
   fetchHistory() {
     this.isLoading = true;
-    this.http.get<ScanItem[]>(`http://${window.location.hostname}:8000/api/scans`).subscribe({
+    this.scansApi.list().subscribe({
       next: (data) => {
-        this.scans = data;
+        this.scans = data as ScanItem[];
         this.isLoading = false;
         this.cdr.detectChanges();
       },
@@ -50,10 +50,9 @@ export class HistoryComponent implements OnInit {
   deleteScan(id: number, event: Event) {
     event.stopPropagation();
     if (!confirm('Are you sure you want to delete this scan and all its findings?')) return;
-    
-    this.http.delete(`http://${window.location.hostname}:8000/api/scans/${id}`).subscribe({
+
+    this.scansApi.delete(id).subscribe({
       next: () => {
-        // Optimistic UI update
         this.scans = this.scans.filter(s => s.id !== id);
         if (this.selectedScan && this.selectedScan.id === id) {
              this.selectedScan = null;
@@ -65,7 +64,7 @@ export class HistoryComponent implements OnInit {
   }
 
   viewDetails(id: number) {
-    this.http.get<ScanItem>(`http://${window.location.hostname}:8000/api/scans/${id}`).subscribe({
+    this.scansApi.get<ScanItem>(id).subscribe({
       next: (data) => {
         this.selectedScan = data;
         this.cdr.detectChanges();
